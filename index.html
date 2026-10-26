@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>マイ TV 予定表</title>
+  <style>
+    :root {
+      --bg-color: #fcf9f2;
+      --card-bg: #ffffff;
+      --text-color: #4a4a4a;
+      --accent-pink: #f7a8b8;
+      --accent-soft-pink: #fde8ed;
+      --accent-purple: #c4b5fd;
+      --border-color: #f0e6e6;
+      --radius: 12px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      padding: 20px 12px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    header h1 {
+      font-size: 1.6rem;
+      color: #333;
+      margin-bottom: 6px;
+      display: inline-block;
+      border-bottom: 3px solid var(--accent-pink);
+      padding-bottom: 4px;
+    }
+
+    /* タブ切り替え */
+    .tabs {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .tab-btn {
+      border: none;
+      background: #eee;
+      padding: 10px 20px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-weight: bold;
+      color: #666;
+      transition: all 0.2s;
+    }
+
+    .tab-btn.active {
+      background: var(--accent-pink);
+      color: white;
+      box-shadow: 0 4px 10px rgba(247, 168, 184, 0.4);
+    }
+
+    /* フォーム設定 */
+    .form-container {
+      background: var(--card-bg);
+      padding: 16px;
+      border-radius: var(--radius);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+      margin-bottom: 24px;
+      border: 1px solid var(--border-color);
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      outline: none;
+      background: #fafafa;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--accent-pink);
+      background: #fff;
+    }
+
+    .add-btn {
+      width: 100%;
+      background: var(--accent-purple);
+      color: white;
+      border: none;
+      padding: 10px;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .add-btn:hover {
+      opacity: 0.9;
+    }
+
+    /* 予定リスト */
+    .section-title {
+      font-size: 1.1rem;
+      margin-bottom: 12px;
+      color: #555;
+    }
+
+    .list-container {
+      display: flex;
+      flex-col: column;
+      gap: 12px;
+    }
+
+    .card {
+      background: var(--card-bg);
+      padding: 14px 16px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+    }
+
+    .card-left {
+      flex-grow: 1;
+    }
+
+    .tag {
+      display: inline-block;
+      background: var(--accent-soft-pink);
+      color: #d85c76;
+      font-weight: bold;
+      font-size: 0.75rem;
+      padding: 3px 8px;
+      border-radius: 6px;
+      margin-bottom: 6px;
+    }
+
+    .program-title {
+      font-size: 1.05rem;
+      font-weight: bold;
+      color: #2d3748;
+      margin-bottom: 6px;
+    }
+
+    .cast {
+      font-size: 0.85rem;
+      color: #6b7280;
+      margin-bottom: 4px;
+    }
+
+    .memo {
+      font-size: 0.8rem;
+      color: #9ca3af;
+      background: #f9fafb;
+      padding: 6px 10px;
+      border-radius: 6px;
+      margin-top: 6px;
+    }
+
+    .delete-btn {
+      background: none;
+      border: none;
+      color: #cbd5e1;
+      cursor: pointer;
+      font-size: 1.2rem;
+      padding: 0 4px;
+    }
+
+    .delete-btn:hover {
+      color: #ef4444;
+    }
+
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>📺 マイ TV 予定表</h1>
+  </header>
+
+  <!-- タブ切り替え -->
+  <div class="tabs">
+    <button class="tab-btn active" id="tab-weekly" onclick="switchTab('weekly')">毎週の番組</button>
+    <button class="tab-btn" id="tab-once" onclick="switchTab('once')">単発・SP番組</button>
+  </div>
+
+  <!-- 入力フォーム -->
+  <div class="form-container">
+    <form id="tv-form">
+      <div class="form-grid">
+        <!-- 毎週用：曜日 -->
+        <select id="input-day" class="weekly-field">
+          <option value="月曜日">月曜日</option>
+          <option value="火曜日">火曜日</option>
+          <option value="水曜日">水曜日</option>
+          <option value="木曜日">木曜日</option>
+          <option value="金曜日">金曜日</option>
+          <option value="土曜日">土曜日</option>
+          <option value="日曜日">日曜日</option>
+        </select>
+
+        <!-- 単発用：日付 -->
+        <input type="date" id="input-date" class="once-field hidden">
+
+        <!-- 時間 -->
+        <input type="time" id="input-time" required>
+
+        <!-- 番組名 -->
+        <input type="text" id="input-title" placeholder="番組名" required>
+      </div>
+
+      <div class="form-grid">
+        <!-- 出演者 -->
+        <input type="text" id="input-cast" placeholder="出演者（推し・アイドル等）">
+
+        <!-- 備考 -->
+        <input type="text" id="input-memo" placeholder="備考（チャンネル、サブタイトルなど）">
+      </div>
+
+      <button type="submit" class="add-btn">＋ 予定を追加する</button>
+    </form>
+  </div>
+
+  <!-- 一覧表示 -->
+  <div id="weekly-view" class="view-section">
+    <div id="weekly-list" class="list-container"></div>
+  </div>
+
+  <div id="once-view" class="view-section hidden">
+    <div id="once-list" class="list-container"></div>
+  </div>
+
+  <script>
+    let currentMode = 'weekly';
+    let tvData = JSON.parse(localStorage.getItem('tvScheduleData')) || [];
+
+    // タブ切り替え
+    function switchTab(mode) {
+      currentMode = mode;
+      document.getElementById('tab-weekly').classList.toggle('active', mode === 'weekly');
+      document.getElementById('tab-once').classList.toggle('active', mode === 'once');
+
+      document.querySelectorAll('.weekly-field').forEach(el => el.classList.toggle('hidden', mode !== 'weekly'));
+      document.querySelectorAll('.once-field').forEach(el => el.classList.toggle('hidden', mode !== 'once'));
+
+      document.getElementById('weekly-view').classList.toggle('hidden', mode !== 'weekly');
+      document.getElementById('once-view').classList.toggle('hidden', mode !== 'once');
+
+      render();
+    }
+
+    // データ保存と描画
+    function saveData() {
+      localStorage.setItem('tvScheduleData', JSON.stringify(tvData));
+      render();
+    }
+
+    // 削除処理
+    function deleteItem(id) {
+      tvData = tvData.filter(item => item.id !== id);
+      saveData();
+    }
+
+    // フォーム送信
+    document.getElementById('tv-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      const newItem = {
+        id: Date.now(),
+        mode: currentMode,
+        title: document.getElementById('input-title').value,
+        time: document.getElementById('input-time').value,
+        cast: document.getElementById('input-cast').value,
+        memo: document.getElementById('input-memo').value,
+        day: currentMode === 'weekly' ? document.getElementById('input-day').value : null,
+        date: currentMode === 'once' ? document.getElementById('input-date').value : null
+      };
+
+      tvData.push(newItem);
+      saveData();
+
+      // 入力フィールド初期化
+      document.getElementById('input-title').value = '';
+      document.getElementById('input-cast').value = '';
+      document.getElementById('input-memo').value = '';
+    });
+
+    // リスト描画
+    function render() {
+      const weeklyList = document.getElementById('weekly-list');
+      const onceList = document.getElementById('once-list');
+
+      weeklyList.innerHTML = '';
+      onceList.innerHTML = '';
+
+      // 時間順にソート
+      const sortedData = [...tvData].sort((a, b) => a.time.localeCompare(b.time));
+
+      sortedData.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'card';
+
+        const tagText = item.mode === 'weekly' 
+          ? `${item.day} ${item.time}` 
+          : `${item.date || '日付未定'} ${item.time}`;
+
+        card.innerHTML = `
+          <div class="card-left">
+            <span class="tag">${tagText}</span>
+            <div class="program-title">${escapeHtml(item.title)}</div>
+            ${item.cast ? `<div class="cast">👤 ${escapeHtml(item.cast)}</div>` : ''}
+            ${item.memo ? `<div class="memo">📝 ${escapeHtml(item.memo)}</div>` : ''}
+          </div>
+          <button class="delete-btn" onclick="deleteItem(${item.id})">✕</button>
+        `;
+
+        if (item.mode === 'weekly') {
+          weeklyList.appendChild(card);
+        } else {
+          onceList.appendChild(card);
+        }
+      });
+    }
+
+    // XSS対策
+    function escapeHtml(str) {
+      return str.replace(/[&<>"']/g, function(m) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m];
+      });
+    }
+
+    // 初期表示
+    render();
+  </script>
+</body>
+</html>
