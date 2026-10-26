@@ -2,7 +2,8 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- スマホでの文字入力時に画面が勝手にズームしてサイズが変わるのを防止 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>マイ TV 予定表</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -327,7 +328,6 @@
       setDoc 
     } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    // Firebase Config
     const firebaseConfig = {
       apiKey: "AIzaSyAoNZm6KwPQuWbC0W65sOh4soLMx1UoUrQ",
       authDomain: "g-account-6f48b.firebaseapp.com",
@@ -342,7 +342,6 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    // Global App State
     window.currentUser = null;
     window.isLoginMode = true;
     window.currentView = 'calendar';
