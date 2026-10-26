@@ -3,359 +3,642 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>マイ TV 予定表</title>
+  <title>TV Schedule Manager</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts & FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'Noto Sans JP', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#f4f6fb',
+              100: '#e8ecf6',
+              200: '#c5d1ed',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+            }
+          }
+        }
+      }
+    }
+  </script>
   <style>
-    :root {
-      --bg-color: #fcf9f2;
-      --card-bg: #ffffff;
-      --text-color: #4a4a4a;
-      --accent-pink: #f7a8b8;
-      --accent-soft-pink: #fde8ed;
-      --accent-purple: #c4b5fd;
-      --border-color: #f0e6e6;
-      --radius: 12px;
-    }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    }
-
     body {
-      background-color: var(--bg-color);
-      color: var(--text-color);
-      padding: 20px 12px;
-      max-width: 800px;
-      margin: 0 auto;
+      background-color: #f8fafc;
+      color: #1e293b;
     }
-
-    header {
-      text-align: center;
-      margin-bottom: 24px;
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
     }
-
-    header h1 {
-      font-size: 1.6rem;
-      color: #333;
-      margin-bottom: 6px;
-      display: inline-block;
-      border-bottom: 3px solid var(--accent-pink);
-      padding-bottom: 4px;
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #f1f5f9;
     }
-
-    /* タブ切り替え */
-    .tabs {
-      display: flex;
-      justify-content: center;
-      gap: 10px;
-      margin-bottom: 20px;
-    }
-
-    .tab-btn {
-      border: none;
-      background: #eee;
-      padding: 10px 20px;
-      border-radius: 20px;
-      cursor: pointer;
-      font-weight: bold;
-      color: #666;
-      transition: all 0.2s;
-    }
-
-    .tab-btn.active {
-      background: var(--accent-pink);
-      color: white;
-      box-shadow: 0 4px 10px rgba(247, 168, 184, 0.4);
-    }
-
-    /* フォーム設定 */
-    .form-container {
-      background: var(--card-bg);
-      padding: 16px;
-      border-radius: var(--radius);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.03);
-      margin-bottom: 24px;
-      border: 1px solid var(--border-color);
-    }
-
-    .form-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-      gap: 10px;
-      margin-bottom: 10px;
-    }
-
-    input, select, textarea {
-      width: 100%;
-      padding: 8px 12px;
-      border: 1px solid #e2e8f0;
-      border-radius: 8px;
-      font-size: 0.9rem;
-      outline: none;
-      background: #fafafa;
-    }
-
-    input:focus, select:focus, textarea:focus {
-      border-color: var(--accent-pink);
-      background: #fff;
-    }
-
-    .add-btn {
-      width: 100%;
-      background: var(--accent-purple);
-      color: white;
-      border: none;
-      padding: 10px;
-      border-radius: 8px;
-      font-weight: bold;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-
-    .add-btn:hover {
-      opacity: 0.9;
-    }
-
-    /* 予定リスト */
-    .section-title {
-      font-size: 1.1rem;
-      margin-bottom: 12px;
-      color: #555;
-    }
-
-    .list-container {
-      display: flex;
-      flex-col: column;
-      gap: 12px;
-    }
-
-    .card {
-      background: var(--card-bg);
-      padding: 14px 16px;
-      border-radius: var(--radius);
-      border: 1px solid var(--border-color);
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.02);
-    }
-
-    .card-left {
-      flex-grow: 1;
-    }
-
-    .tag {
-      display: inline-block;
-      background: var(--accent-soft-pink);
-      color: #d85c76;
-      font-weight: bold;
-      font-size: 0.75rem;
-      padding: 3px 8px;
-      border-radius: 6px;
-      margin-bottom: 6px;
-    }
-
-    .program-title {
-      font-size: 1.05rem;
-      font-weight: bold;
-      color: #2d3748;
-      margin-bottom: 6px;
-    }
-
-    .cast {
-      font-size: 0.85rem;
-      color: #6b7280;
-      margin-bottom: 4px;
-    }
-
-    .memo {
-      font-size: 0.8rem;
-      color: #9ca3af;
-      background: #f9fafb;
-      padding: 6px 10px;
-      border-radius: 6px;
-      margin-top: 6px;
-    }
-
-    .delete-btn {
-      background: none;
-      border: none;
-      color: #cbd5e1;
-      cursor: pointer;
-      font-size: 1.2rem;
-      padding: 0 4px;
-    }
-
-    .delete-btn:hover {
-      color: #ef4444;
-    }
-
-    .hidden {
-      display: none;
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
     }
   </style>
 </head>
-<body>
+<body class="min-h-screen flex flex-col font-sans antialiased selection:bg-indigo-500 selection:text-white">
 
-  <header>
-    <h1>📺 マイ TV 予定表</h1>
+  <!-- Header Section -->
+  <header class="bg-white/80 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        <!-- Logo / Title -->
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white shadow-md shadow-indigo-200">
+            <i class="fa-solid font-bold fa-tv text-lg"></i>
+          </div>
+          <div>
+            <h1 class="text-lg font-bold text-slate-800 tracking-tight">TV Schedule</h1>
+            <p class="text-xs text-slate-400 font-medium">番組・試聴スケジュール管理</p>
+          </div>
+        </div>
+
+        <!-- Mode Toggle & Add Button -->
+        <div class="flex items-center space-x-2 sm:space-x-3">
+          <!-- View Switcher Tabs -->
+          <div class="bg-slate-100 p-1 rounded-xl flex text-xs font-semibold text-slate-600">
+            <button id="view-calendar-btn" onclick="switchView('calendar')" class="px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 bg-white text-indigo-600 shadow-sm">
+              <i class="fa-regular fa-calendar-days"></i>
+              <span class="hidden sm:inline">カレンダー</span>
+            </button>
+            <button id="view-table-btn" onclick="switchView('table')" class="px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 hover:text-slate-900">
+              <i class="fa-solid fa-list-check"></i>
+              <span class="hidden sm:inline">リスト表</span>
+            </button>
+          </div>
+
+          <!-- Add Button -->
+          <button onclick="openModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium shadow-sm transition-all duration-150 flex items-center gap-2 active:scale-95">
+            <i class="fa-solid fa-plus text-xs"></i>
+            <span>予定を追加</span>
+          </button>
+        </div>
+      </div>
+    </div>
   </header>
 
-  <!-- タブ切り替え -->
-  <div class="tabs">
-    <button class="tab-btn active" id="tab-weekly" onclick="switchTab('weekly')">毎週の番組</button>
-    <button class="tab-btn" id="tab-once" onclick="switchTab('once')">単発・SP番組</button>
-  </div>
+  <!-- Main Content Container -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
-  <!-- 入力フォーム -->
-  <div class="form-container">
-    <form id="tv-form">
-      <div class="form-grid">
-        <!-- 毎週用：曜日 -->
-        <select id="input-day" class="weekly-field">
-          <option value="月曜日">月曜日</option>
-          <option value="火曜日">火曜日</option>
-          <option value="水曜日">水曜日</option>
-          <option value="木曜日">木曜日</option>
-          <option value="金曜日">金曜日</option>
-          <option value="土曜日">土曜日</option>
-          <option value="日曜日">日曜日</option>
-        </select>
+    <!-- CALENDAR VIEW -->
+    <section id="calendar-view" class="space-y-4">
+      <!-- Calendar Controls -->
+      <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="flex items-center space-x-3">
+          <h2 id="calendar-month-year" class="text-xl font-bold text-slate-800">2026年 10月</h2>
+          <div class="flex items-center bg-slate-100 rounded-lg p-0.5 text-xs text-slate-600">
+            <button onclick="prevMonth()" class="px-2.5 py-1 rounded-md hover:bg-white hover:shadow-xs transition"><i class="fa-solid fa-chevron-left"></i></button>
+            <button onclick="todayMonth()" class="px-2.5 py-1 font-medium hover:bg-white hover:shadow-xs transition">今月</button>
+            <button onclick="nextMonth()" class="px-2.5 py-1 rounded-md hover:bg-white hover:shadow-xs transition"><i class="fa-solid fa-chevron-right"></i></button>
+          </div>
+        </div>
 
-        <!-- 単発用：日付 -->
-        <input type="date" id="input-date" class="once-field hidden">
-
-        <!-- 時間 -->
-        <input type="time" id="input-time" required>
-
-        <!-- 番組名 -->
-        <input type="text" id="input-title" placeholder="番組名" required>
+        <!-- Filter Tags Info -->
+        <div class="flex items-center gap-4 text-xs font-medium text-slate-500">
+          <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-indigo-500 inline-block"></span>毎週の番組</span>
+          <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block"></span>単発/SP番組</span>
+        </div>
       </div>
 
-      <div class="form-grid">
-        <!-- 出演者 -->
-        <input type="text" id="input-cast" placeholder="出演者（推し・アイドル等）">
+      <!-- Calendar Grid Box -->
+      <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+        <!-- Weekday Headers -->
+        <div class="grid grid-cols-7 border-b border-slate-100 bg-slate-50/50 text-center text-xs font-semibold text-slate-500 py-2.5">
+          <span class="text-rose-500">日</span>
+          <span>月</span>
+          <span>火</span>
+          <span>水</span>
+          <span>木</span>
+          <span>金</span>
+          <span class="text-sky-500">土</span>
+        </div>
 
-        <!-- 備考 -->
-        <input type="text" id="input-memo" placeholder="備考（チャンネル、サブタイトルなど）">
+        <!-- Days Grid -->
+        <div id="calendar-grid" class="grid grid-cols-7 auto-rows-fr divide-x divide-y divide-slate-100 text-xs min-h-[500px]">
+          <!-- Dynamic Calendar Cells rendered by JavaScript -->
+        </div>
+      </div>
+    </section>
+
+    <!-- TABLE VIEW -->
+    <section id="table-view" class="space-y-4 hidden">
+      <!-- Search and Filter Bar -->
+      <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col md:flex-row gap-3 items-center justify-between">
+        <div class="relative w-full md:w-80">
+          <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+          <input type="text" id="table-search" oninput="renderTable()" placeholder="番組名、出演者、メモで検索..." 
+                 class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition">
+        </div>
+
+        <div class="flex items-center gap-2 w-full md:w-auto justify-end">
+          <select id="table-filter-type" onchange="renderTable()" class="bg-slate-50 border border-slate-200 text-xs text-slate-600 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            <option value="all">すべての番組</option>
+            <option value="weekly">毎週の番組</option>
+            <option value="once">単発・SP番組</option>
+          </select>
+        </div>
       </div>
 
-      <button type="submit" class="add-btn">＋ 予定を追加する</button>
-    </form>
+      <!-- Table Box -->
+      <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto custom-scrollbar">
+          <table class="w-full text-left text-xs text-slate-600">
+            <thead class="bg-slate-50/80 border-b border-slate-200/80 text-slate-500 font-semibold uppercase tracking-wider">
+              <tr>
+                <th class="py-3.5 px-4">日時 / 曜日</th>
+                <th class="py-3.5 px-4">番組名</th>
+                <th class="py-3.5 px-4">出演者</th>
+                <th class="py-3.5 px-4">備考メモ</th>
+                <th class="py-3.5 px-4 text-right">操作</th>
+              </tr>
+            </thead>
+            <tbody id="table-body" class="divide-y divide-slate-100">
+              <!-- Dynamic Table Rows -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ADD / EDIT MODAL -->
+  <div id="modal-backdrop" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-200">
+    <div id="modal-panel" class="bg-white rounded-2xl shadow-xl border border-slate-200/80 w-full max-w-md overflow-hidden transform scale-95 transition-all duration-200">
+      
+      <!-- Modal Header -->
+      <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+        <h3 id="modal-title" class="font-bold text-slate-800 text-base">新しい番組予定を追加</h3>
+        <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-100 transition">
+          <i class="fa-solid fa-xmark text-sm"></i>
+        </button>
+      </div>
+
+      <!-- Modal Form -->
+      <form id="schedule-form" onsubmit="handleFormSubmit(event)" class="p-6 space-y-4">
+        <input type="hidden" id="entry-id">
+
+        <!-- Type Selector (Weekly vs Single Date) -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1.5">放送タイプ</label>
+          <div class="grid grid-cols-2 gap-2">
+            <label class="cursor-pointer">
+              <input type="radio" name="entry-type" value="weekly" checked onchange="toggleTypeFields('weekly')" class="peer sr-only">
+              <div class="text-center py-2 text-xs font-medium border border-slate-200 rounded-xl peer-checked:bg-indigo-50 peer-checked:border-indigo-500 peer-checked:text-indigo-700 transition">
+                <i class="fa-solid fa-rotate-right mr-1"></i> 毎週の番組
+              </div>
+            </label>
+            <label class="cursor-pointer">
+              <input type="radio" name="entry-type" value="once" onchange="toggleTypeFields('once')" class="peer sr-only">
+              <div class="text-center py-2 text-xs font-medium border border-slate-200 rounded-xl peer-checked:bg-rose-50 peer-checked:border-rose-500 peer-checked:text-rose-700 transition">
+                <i class="fa-regular fa-calendar mr-1"></i> 単発・SP番組
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Date & Time Inputs -->
+        <div class="grid grid-cols-2 gap-3">
+          <!-- Day of Week (For Weekly) -->
+          <div id="field-weekly-day">
+            <label class="block text-xs font-semibold text-slate-600 mb-1">曜日 <span class="text-rose-500">*</span></label>
+            <select id="input-day" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none">
+              <option value="1">月曜日</option>
+              <option value="2">火曜日</option>
+              <option value="3">水曜日</option>
+              <option value="4">木曜日</option>
+              <option value="5">金曜日</option>
+              <option value="6">土曜日</option>
+              <option value="0">日曜日</option>
+            </select>
+          </div>
+
+          <!-- Specific Date (For Single Show) -->
+          <div id="field-once-date" class="hidden">
+            <label class="block text-xs font-semibold text-slate-600 mb-1">日付 <span class="text-rose-500">*</span></label>
+            <input type="date" id="input-date" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none">
+          </div>
+
+          <!-- Time Input -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">放送時間 <span class="text-rose-500">*</span></label>
+            <input type="time" id="input-time" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none">
+          </div>
+        </div>
+
+        <!-- Title -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">番組名 <span class="text-rose-500">*</span></label>
+          <input type="text" id="input-title" required placeholder="例: 月曜ドラマ特番" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none">
+        </div>
+
+        <!-- Cast / Idols -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">出演者（推し・タレント）</label>
+          <div class="relative">
+            <i class="fa-regular fa-user absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+            <input type="text" id="input-cast" placeholder="例: 山田太郎, 花子" class="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none">
+          </div>
+        </div>
+
+        <!-- Notes / Channel -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">備考メモ / チャンネル</label>
+          <textarea id="input-memo" rows="2" placeholder="例: フジテレビ系列 / 録画予約必要" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none resize-none"></textarea>
+        </div>
+
+        <!-- Color Tag Selector -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1.5">カラータグ</label>
+          <div class="flex items-center space-x-3">
+            <label class="cursor-pointer">
+              <input type="radio" name="color-tag" value="indigo" checked class="peer sr-only">
+              <span class="w-6 h-6 rounded-full bg-indigo-500 inline-block ring-2 ring-transparent peer-checked:ring-offset-2 peer-checked:ring-indigo-500 transition"></span>
+            </label>
+            <label class="cursor-pointer">
+              <input type="radio" name="color-tag" value="rose" class="peer sr-only">
+              <span class="w-6 h-6 rounded-full bg-rose-500 inline-block ring-2 ring-transparent peer-checked:ring-offset-2 peer-checked:ring-rose-500 transition"></span>
+            </label>
+            <label class="cursor-pointer">
+              <input type="radio" name="color-tag" value="emerald" class="peer sr-only">
+              <span class="w-6 h-6 rounded-full bg-emerald-500 inline-block ring-2 ring-transparent peer-checked:ring-offset-2 peer-checked:ring-emerald-500 transition"></span>
+            </label>
+            <label class="cursor-pointer">
+              <input type="radio" name="color-tag" value="amber" class="peer sr-only">
+              <span class="w-6 h-6 rounded-full bg-amber-500 inline-block ring-2 ring-transparent peer-checked:ring-offset-2 peer-checked:ring-amber-500 transition"></span>
+            </label>
+            <label class="cursor-pointer">
+              <input type="radio" name="color-tag" value="sky" class="peer sr-only">
+              <span class="w-6 h-6 rounded-full bg-sky-500 inline-block ring-2 ring-transparent peer-checked:ring-offset-2 peer-checked:ring-sky-500 transition"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Form Buttons -->
+        <div class="pt-2 flex items-center justify-end space-x-2">
+          <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-xs font-medium text-slate-600 hover:bg-slate-50 transition">キャンセル</button>
+          <button type="submit" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium shadow-sm transition">保存する</button>
+        </div>
+      </form>
+    </div>
   </div>
 
-  <!-- 一覧表示 -->
-  <div id="weekly-view" class="view-section">
-    <div id="weekly-list" class="list-container"></div>
-  </div>
-
-  <div id="once-view" class="view-section hidden">
-    <div id="once-list" class="list-container"></div>
-  </div>
-
+  <!-- APPLICATION JAVASCRIPT -->
   <script>
-    let currentMode = 'weekly';
-    let tvData = JSON.parse(localStorage.getItem('tvScheduleData')) || [];
+    // State Management
+    let currentView = 'calendar';
+    let currentDate = new Date();
+    let schedules = JSON.parse(localStorage.getItem('tv_schedules_data')) || [
+      {
+        id: '1',
+        type: 'weekly',
+        day: '1', // Monday
+        time: '21:00',
+        title: '月曜ドラマ',
+        cast: '推し俳優A',
+        memo: 'カンテレ・フジテレビ系',
+        color: 'indigo'
+      },
+      {
+        id: '2',
+        type: 'once',
+        date: new Date().toISOString().split('T')[0],
+        time: '19:00',
+        title: '大型音楽スペシャル番組',
+        cast: '注目グループ, アイドルB',
+        memo: '3時間生放送',
+        color: 'rose'
+      }
+    ];
 
-    // タブ切り替え
-    function switchTab(mode) {
-      currentMode = mode;
-      document.getElementById('tab-weekly').classList.toggle('active', mode === 'weekly');
-      document.getElementById('tab-once').classList.toggle('active', mode === 'once');
+    const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
+    const colorClasses = {
+      indigo: { bg: 'bg-indigo-500', text: 'text-indigo-700', light: 'bg-indigo-50 border-indigo-200' },
+      rose: { bg: 'bg-rose-500', text: 'text-rose-700', light: 'bg-rose-50 border-rose-200' },
+      emerald: { bg: 'bg-emerald-500', text: 'text-emerald-700', light: 'bg-emerald-50 border-emerald-200' },
+      amber: { bg: 'bg-amber-500', text: 'text-amber-700', light: 'bg-amber-50 border-amber-200' },
+      sky: { bg: 'bg-sky-500', text: 'text-sky-700', light: 'bg-sky-50 border-sky-200' },
+    };
 
-      document.querySelectorAll('.weekly-field').forEach(el => el.classList.toggle('hidden', mode !== 'weekly'));
-      document.querySelectorAll('.once-field').forEach(el => el.classList.toggle('hidden', mode !== 'once'));
-
-      document.getElementById('weekly-view').classList.toggle('hidden', mode !== 'weekly');
-      document.getElementById('once-view').classList.toggle('hidden', mode !== 'once');
-
-      render();
-    }
-
-    // データ保存と描画
-    function saveData() {
-      localStorage.setItem('tvScheduleData', JSON.stringify(tvData));
-      render();
-    }
-
-    // 削除処理
-    function deleteItem(id) {
-      tvData = tvData.filter(item => item.id !== id);
-      saveData();
-    }
-
-    // フォーム送信
-    document.getElementById('tv-form').addEventListener('submit', (e) => {
-      e.preventDefault();
-
-      const newItem = {
-        id: Date.now(),
-        mode: currentMode,
-        title: document.getElementById('input-title').value,
-        time: document.getElementById('input-time').value,
-        cast: document.getElementById('input-cast').value,
-        memo: document.getElementById('input-memo').value,
-        day: currentMode === 'weekly' ? document.getElementById('input-day').value : null,
-        date: currentMode === 'once' ? document.getElementById('input-date').value : null
-      };
-
-      tvData.push(newItem);
-      saveData();
-
-      // 入力フィールド初期化
-      document.getElementById('input-title').value = '';
-      document.getElementById('input-cast').value = '';
-      document.getElementById('input-memo').value = '';
+    // Initialize App
+    document.addEventListener('DOMContentLoaded', () => {
+      renderCalendar();
+      renderTable();
     });
 
-    // リスト描画
-    function render() {
-      const weeklyList = document.getElementById('weekly-list');
-      const onceList = document.getElementById('once-list');
+    // View Switching
+    function switchView(view) {
+      currentView = view;
+      const calendarView = document.getElementById('calendar-view');
+      const tableView = document.getElementById('table-view');
+      const calBtn = document.getElementById('view-calendar-btn');
+      const tblBtn = document.getElementById('view-table-btn');
 
-      weeklyList.innerHTML = '';
-      onceList.innerHTML = '';
+      if (view === 'calendar') {
+        calendarView.classList.remove('hidden');
+        tableView.classList.add('hidden');
+        calBtn.className = 'px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 bg-white text-indigo-600 shadow-sm';
+        tblBtn.className = 'px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 hover:text-slate-900';
+        renderCalendar();
+      } else {
+        calendarView.classList.add('hidden');
+        tableView.classList.remove('hidden');
+        tblBtn.className = 'px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 bg-white text-indigo-600 shadow-sm';
+        calBtn.className = 'px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 hover:text-slate-900';
+        renderTable();
+      }
+    }
 
-      // 時間順にソート
-      const sortedData = [...tvData].sort((a, b) => a.time.localeCompare(b.time));
+    // Modal Operations
+    function openModal(presetDate = null) {
+      document.getElementById('schedule-form').reset();
+      document.getElementById('entry-id').value = '';
+      document.getElementById('modal-title').textContent = '新しい番組予定を追加';
+      
+      // Default type
+      document.querySelector('input[name="entry-type"][value="weekly"]').checked = true;
+      toggleTypeFields('weekly');
 
-      sortedData.forEach(item => {
-        const card = document.createElement('div');
-        card.className = 'card';
+      if (presetDate) {
+        document.querySelector('input[name="entry-type"][value="once"]').checked = true;
+        toggleTypeFields('once');
+        document.getElementById('input-date').value = presetDate;
+      }
 
-        const tagText = item.mode === 'weekly' 
-          ? `${item.day} ${item.time}` 
-          : `${item.date || '日付未定'} ${item.time}`;
+      const backdrop = document.getElementById('modal-backdrop');
+      const panel = document.getElementById('modal-panel');
+      backdrop.classList.remove('opacity-0', 'pointer-events-none');
+      panel.classList.remove('scale-95');
+      panel.classList.add('scale-100');
+    }
 
-        card.innerHTML = `
-          <div class="card-left">
-            <span class="tag">${tagText}</span>
-            <div class="program-title">${escapeHtml(item.title)}</div>
-            ${item.cast ? `<div class="cast">👤 ${escapeHtml(item.cast)}</div>` : ''}
-            ${item.memo ? `<div class="memo">📝 ${escapeHtml(item.memo)}</div>` : ''}
-          </div>
-          <button class="delete-btn" onclick="deleteItem(${item.id})">✕</button>
+    function closeModal() {
+      const backdrop = document.getElementById('modal-backdrop');
+      const panel = document.getElementById('modal-panel');
+      backdrop.classList.add('opacity-0', 'pointer-events-none');
+      panel.classList.remove('scale-100');
+      panel.classList.add('scale-95');
+    }
+
+    function toggleTypeFields(type) {
+      const weeklyField = document.getElementById('field-weekly-day');
+      const onceField = document.getElementById('field-once-date');
+      if (type === 'weekly') {
+        weeklyField.classList.remove('hidden');
+        onceField.classList.add('hidden');
+      } else {
+        weeklyField.classList.add('hidden');
+        onceField.classList.remove('hidden');
+      }
+    }
+
+    // Edit Item
+    function editSchedule(id) {
+      const item = schedules.find(s => s.id === id);
+      if (!item) return;
+
+      document.getElementById('entry-id').value = item.id;
+      document.getElementById('modal-title').textContent = '番組予定を編集';
+
+      document.querySelector(`input[name="entry-type"][value="${item.type}"]`).checked = true;
+      toggleTypeFields(item.type);
+
+      if (item.type === 'weekly') {
+        document.getElementById('input-day').value = item.day;
+      } else {
+        document.getElementById('input-date').value = item.date;
+      }
+
+      document.getElementById('input-time').value = item.time;
+      document.getElementById('input-title').value = item.title;
+      document.getElementById('input-cast').value = item.cast || '';
+      document.getElementById('input-memo').value = item.memo || '';
+
+      const colorRadio = document.querySelector(`input[name="color-tag"][value="${item.color || 'indigo'}"]`);
+      if (colorRadio) colorRadio.checked = true;
+
+      const backdrop = document.getElementById('modal-backdrop');
+      const panel = document.getElementById('modal-panel');
+      backdrop.classList.remove('opacity-0', 'pointer-events-none');
+      panel.classList.remove('scale-95');
+      panel.classList.add('scale-100');
+    }
+
+    // Delete Item
+    function deleteSchedule(id) {
+      if (confirm('この番組予定を削除してもよろしいですか？')) {
+        schedules = schedules.filter(s => s.id !== id);
+        saveData();
+      }
+    }
+
+    // Handle Form Submit
+    function handleFormSubmit(e) {
+      e.preventDefault();
+      const id = document.getElementById('entry-id').value || Date.now().toString();
+      const type = document.querySelector('input[name="entry-type"]:checked').value;
+      const color = document.querySelector('input[name="color-tag"]:checked').value;
+
+      const newItem = {
+        id,
+        type,
+        color,
+        time: document.getElementById('input-time').value,
+        title: document.getElementById('input-title').value,
+        cast: document.getElementById('input-cast').value,
+        memo: document.getElementById('input-memo').value,
+        day: type === 'weekly' ? document.getElementById('input-day').value : null,
+        date: type === 'once' ? document.getElementById('input-date').value : null
+      };
+
+      const existingIndex = schedules.findIndex(s => s.id === id);
+      if (existingIndex > -1) {
+        schedules[existingIndex] = newItem;
+      } else {
+        schedules.push(newItem);
+      }
+
+      saveData();
+      closeModal();
+    }
+
+    function saveData() {
+      localStorage.setItem('tv_schedules_data', JSON.stringify(schedules));
+      if (currentView === 'calendar') renderCalendar();
+      else renderTable();
+    }
+
+    // CALENDAR RENDER LOGIC
+    function prevMonth() {
+      currentDate.setMonth(currentDate.getMonth() - 1);
+      renderCalendar();
+    }
+    function nextMonth() {
+      currentDate.setMonth(currentDate.getMonth() + 1);
+      renderCalendar();
+    }
+    function todayMonth() {
+      currentDate = new Date();
+      renderCalendar();
+    }
+
+    function renderCalendar() {
+      const year = currentDate.getFullYear();
+      const month = currentDate.getMonth();
+
+      document.getElementById('calendar-month-year').textContent = `${year}年 ${month + 1}月`;
+
+      const firstDay = new Date(year, month, 1).getDay();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+      const grid = document.getElementById('calendar-grid');
+      grid.innerHTML = '';
+
+      // Blank Cells for offset
+      for (let i = 0; i < firstDay; i++) {
+        const emptyCell = document.createElement('div');
+        emptyCell.className = 'bg-slate-50/40 p-1.5 min-h-[100px] border-b border-r border-slate-100';
+        grid.appendChild(emptyCell);
+      }
+
+      const todayStr = new Date().toISOString().split('T')[0];
+
+      for (let day = 1; day <= daysInMonth; day++) {
+        const cellDate = new Date(year, month, day);
+        const dayOfWeek = cellDate.getDay();
+        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const isToday = dateStr === todayStr;
+
+        const cell = document.createElement('div');
+        cell.className = `p-1.5 min-h-[100px] border-b border-r border-slate-100 relative group hover:bg-slate-50/80 transition flex flex-col justify-between ${isToday ? 'bg-indigo-50/30' : ''}`;
+        
+        // Date Number and Quick Add Button
+        let dayNumColor = 'text-slate-700';
+        if (dayOfWeek === 0) dayNumColor = 'text-rose-500 font-medium';
+        if (dayOfWeek === 6) dayNumColor = 'text-sky-500 font-medium';
+
+        const topRow = document.createElement('div');
+        topRow.className = 'flex items-center justify-between mb-1';
+        topRow.innerHTML = `
+          <span class="${dayNumColor} ${isToday ? 'w-5 h-5 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold text-[11px]' : 'text-xs font-semibold'}">${day}</span>
+          <button onclick="openModal('${dateStr}')" title="この日に予定を追加" class="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-indigo-600 w-5 h-5 rounded hover:bg-white shadow-xs flex items-center justify-center transition">
+            <i class="fa-solid fa-plus text-[10px]"></i>
+          </button>
+        `;
+        cell.appendChild(topRow);
+
+        // Container for items inside cell
+        const itemsContainer = document.createElement('div');
+        itemsContainer.className = 'space-y-1 overflow-y-auto max-h-[85px] custom-scrollbar flex-1';
+
+        // Filter events for this cell: Weekly matching day OR Once matching date
+        const dayEvents = schedules.filter(s => {
+          if (s.type === 'weekly') {
+            return parseInt(s.day) === dayOfWeek;
+          } else {
+            return s.date === dateStr;
+          }
+        }).sort((a,b) => a.time.localeCompare(b.time));
+
+        dayEvents.forEach(item => {
+          const badge = document.createElement('div');
+          const isWeekly = item.type === 'weekly';
+          const badgeColor = isWeekly ? 'border-l-2 border-indigo-500 bg-indigo-50/70 text-indigo-900' : 'border-l-2 border-rose-500 bg-rose-50/70 text-rose-900';
+          
+          badge.className = `p-1 rounded text-[10px] leading-tight cursor-pointer hover:shadow-xs transition ${badgeColor}`;
+          badge.onclick = (e) => {
+            e.stopPropagation();
+            editSchedule(item.id);
+          };
+
+          badge.innerHTML = `
+            <div class="font-bold truncate flex items-center justify-between">
+              <span>${item.time} ${escapeHtml(item.title)}</span>
+            </div>
+            ${item.cast ? `<div class="text-[9px] text-slate-500 truncate mt-0.5"><i class="fa-regular fa-user mr-0.5"></i>${escapeHtml(item.cast)}</div>` : ''}
+          `;
+          itemsContainer.appendChild(badge);
+        });
+
+        cell.appendChild(itemsContainer);
+        grid.appendChild(cell);
+      }
+    }
+
+    // TABLE RENDER LOGIC
+    function renderTable() {
+      const tbody = document.getElementById('table-body');
+      tbody.innerHTML = '';
+
+      const query = document.getElementById('table-search').value.toLowerCase();
+      const filterType = document.getElementById('table-filter-type').value;
+
+      let filtered = schedules.filter(s => {
+        if (filterType !== 'all' && s.type !== filterType) return false;
+        
+        const matchTitle = s.title.toLowerCase().includes(query);
+        const matchCast = (s.cast || '').toLowerCase().includes(query);
+        const matchMemo = (s.memo || '').toLowerCase().includes(query);
+        return matchTitle || matchCast || matchMemo;
+      });
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="5" class="text-center py-8 text-slate-400">
+              <i class="fa-regular fa-folder-open text-2xl mb-2 block"></i>
+              該当する番組予定が見つかりません
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      filtered.forEach(item => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-50/60 transition';
+
+        let dateDisplay = '';
+        if (item.type === 'weekly') {
+          dateDisplay = `<span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200/60">毎週${dayNames[item.day]}曜 ${item.time}</span>`;
+        } else {
+          dateDisplay = `<span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200/60">${item.date || '日付未定'} ${item.time}</span>`;
+        }
+
+        tr.innerHTML = `
+          <td class="py-3 px-4 whitespace-nowrap">${dateDisplay}</td>
+          <td class="py-3 px-4 font-semibold text-slate-800">${escapeHtml(item.title)}</td>
+          <td class="py-3 px-4 text-slate-600">${item.cast ? `<span class="inline-flex items-center gap-1"><i class="fa-regular fa-user text-slate-400"></i> ${escapeHtml(item.cast)}</span>` : '<span class="text-slate-300">-</span>'}</td>
+          <td class="py-3 px-4 text-slate-500 max-w-xs truncate">${escapeHtml(item.memo || '-')}</td>
+          <td class="py-3 px-4 text-right whitespace-nowrap space-x-2">
+            <button onclick="editSchedule('${item.id}')" class="text-slate-400 hover:text-indigo-600 transition p-1"><i class="fa-regular fa-pen-to-square"></i></button>
+            <button onclick="deleteSchedule('${item.id}')" class="text-slate-400 hover:text-rose-600 transition p-1"><i class="fa-regular fa-trash-can"></i></button>
+          </td>
         `;
 
-        if (item.mode === 'weekly') {
-          weeklyList.appendChild(card);
-        } else {
-          onceList.appendChild(card);
-        }
+        tbody.appendChild(tr);
       });
     }
 
-    // XSS対策
+    // Helper for HTML escaping
     function escapeHtml(str) {
+      if (!str) return '';
       return str.replace(/[&<>"']/g, function(m) {
         return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m];
       });
     }
-
-    // 初期表示
-    render();
   </script>
 </body>
 </html>
