@@ -150,7 +150,7 @@
           <table class="w-full text-left text-xs border-collapse">
             <thead class="bg-slate-50 border-b border-slate-200 text-slate-500 font-medium">
               <tr>
-                <th class="py-2 px-3 w-28">放送日時</th>
+                <th class="py-2 px-3 w-32">放送日時</th>
                 <th class="py-2 px-3">番組名</th>
                 <th class="py-2 px-3">出演者</th>
                 <th class="py-2 px-3">備考</th>
@@ -203,7 +203,7 @@
 
         <!-- Date & Time Inputs -->
         <div class="grid grid-cols-2 gap-2">
-          <!-- Day of Week -->
+          <!-- Day of Week (Weekly) -->
           <div id="field-weekly-day">
             <label class="block text-[11px] font-medium text-slate-500 mb-0.5">曜日 <span class="text-rose-500">*</span></label>
             <select id="input-day" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-indigo-500 focus:bg-white outline-none">
@@ -217,7 +217,7 @@
             </select>
           </div>
 
-          <!-- Specific Date -->
+          <!-- Specific Date (Single Show) -->
           <div id="field-once-date" class="hidden">
             <label class="block text-[11px] font-medium text-slate-500 mb-0.5">日付 <span class="text-rose-500">*</span></label>
             <input type="date" id="input-date" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-indigo-500 focus:bg-white outline-none">
@@ -228,6 +228,13 @@
             <label class="block text-[11px] font-medium text-slate-500 mb-0.5">時間 <span class="text-rose-500">*</span></label>
             <input type="time" id="input-time" required class="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-indigo-500 focus:bg-white outline-none">
           </div>
+        </div>
+
+        <!-- Weekly End Date (Optional) -->
+        <div id="field-weekly-end" class="bg-indigo-50/50 p-2 rounded-lg border border-indigo-100">
+          <label class="block text-[11px] font-medium text-indigo-900 mb-0.5">放送終了日（任意・最終放送日）</label>
+          <input type="date" id="input-end-date" class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs focus:ring-1 focus:ring-indigo-500 outline-none">
+          <p class="text-[10px] text-slate-400 mt-0.5">指定した日以降はカレンダーに表示されなくなります</p>
         </div>
 
         <!-- Title -->
@@ -245,9 +252,7 @@
           <input type="text" id="input-cast" placeholder="出演者名（カンマ区切り可）" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-indigo-500 focus:bg-white outline-none mb-1.5">
           
           <!-- Registered Talent Quick Select Buttons -->
-          <div id="quick-talent-list" class="flex flex-wrap gap-1 max-h-16 overflow-y-auto custom-scrollbar">
-            <!-- Dynamic Talent Quick Buttons -->
-          </div>
+          <div id="quick-talent-list" class="flex flex-wrap gap-1 max-h-16 overflow-y-auto custom-scrollbar"></div>
         </div>
 
         <!-- Notes / Channel -->
@@ -262,9 +267,7 @@
             <label class="block text-[11px] font-medium text-slate-500">カラータグ</label>
             <button type="button" onclick="openAddTagPrompt()" class="text-[10px] text-indigo-600 hover:underline">+ 新しい色を追加</button>
           </div>
-          <div id="color-tag-container" class="flex flex-wrap gap-2 items-center">
-            <!-- Dynamic Color Tag Radios -->
-          </div>
+          <div id="color-tag-container" class="flex flex-wrap gap-2 items-center"></div>
         </div>
 
         <!-- Form Buttons -->
@@ -289,9 +292,7 @@
         <button onclick="addTalent()" class="bg-indigo-600 text-white px-2.5 py-1 rounded-lg text-xs font-medium hover:bg-indigo-700 transition">登録</button>
       </div>
 
-      <div id="talent-manager-list" class="space-y-1 max-h-48 overflow-y-auto custom-scrollbar border-t border-slate-100 pt-2">
-        <!-- Dynamic Managed Talents -->
-      </div>
+      <div id="talent-manager-list" class="space-y-1 max-h-48 overflow-y-auto custom-scrollbar border-t border-slate-100 pt-2"></div>
     </div>
   </div>
 
@@ -301,7 +302,6 @@
     let currentView = 'calendar';
     let currentDate = new Date();
     
-    // Empty default states
     let schedules = JSON.parse(localStorage.getItem('tv_schedules_data')) || [];
     let customTags = JSON.parse(localStorage.getItem('tv_custom_tags')) || [
       { id: 'tag-1', name: '通常', color: '#6366f1' },
@@ -378,13 +378,39 @@
     function toggleTypeFields(type) {
       const weeklyField = document.getElementById('field-weekly-day');
       const onceField = document.getElementById('field-once-date');
+      const weeklyEndField = document.getElementById('field-weekly-end');
+
       if (type === 'weekly') {
         weeklyField.classList.remove('hidden');
         onceField.classList.add('hidden');
+        weeklyEndField.classList.remove('hidden');
       } else {
         weeklyField.classList.add('hidden');
         onceField.classList.remove('hidden');
+        weeklyEndField.classList.add('hidden');
       }
+    }
+
+    // Single Date Skip Toggle (休止機能)
+    function toggleSkipDate(id, dateStr, e) {
+      if (e) e.stopPropagation();
+      const item = schedules.find(s => s.id === id);
+      if (!item) return;
+
+      if (!item.skippedDates) item.skippedDates = [];
+
+      const index = item.skippedDates.indexOf(dateStr);
+      if (index > -1) {
+        item.skippedDates.splice(index, 1);
+      } else {
+        if (confirm(`${dateStr} の放送を「休止（放送なし）」に設定しますか？`)) {
+          item.skippedDates.push(dateStr);
+        } else {
+          return;
+        }
+      }
+
+      saveData();
     }
 
     // Color Tag Render & Custom Tag Addition
@@ -405,18 +431,13 @@
     }
 
     function openAddTagPrompt() {
-      const tagName = prompt('カラータグの名前（ジャンルなど）を入力してください:');
+      const tagName = prompt('カラータグの名前を入力してください:');
       if (!tagName) return;
 
-      const tagColor = prompt('カラーコード（例: #f59e0b や #ec4899）を入力してください:', '#3b82f6');
+      const tagColor = prompt('カラーコード（例: #f59e0b）を入力してください:', '#3b82f6');
       if (!tagColor) return;
 
-      const newTag = {
-        id: 'tag-' + Date.now(),
-        name: tagName,
-        color: tagColor
-      };
-
+      const newTag = { id: 'tag-' + Date.now(), name: tagName, color: tagColor };
       customTags.push(newTag);
       localStorage.setItem('tv_custom_tags', JSON.stringify(customTags));
       renderColorTags();
@@ -425,13 +446,11 @@
     // Talent Management
     function openTalentModal() {
       renderTalentManagerList();
-      const backdrop = document.getElementById('talent-modal-backdrop');
-      backdrop.classList.remove('opacity-0', 'pointer-events-none');
+      document.getElementById('talent-modal-backdrop').classList.remove('opacity-0', 'pointer-events-none');
     }
 
     function closeTalentModal() {
-      const backdrop = document.getElementById('talent-modal-backdrop');
-      backdrop.classList.add('opacity-0', 'pointer-events-none');
+      document.getElementById('talent-modal-backdrop').classList.add('opacity-0', 'pointer-events-none');
     }
 
     function addTalent() {
@@ -506,6 +525,7 @@
 
       if (item.type === 'weekly') {
         document.getElementById('input-day').value = item.day;
+        document.getElementById('input-end-date').value = item.endDate || '';
       } else {
         document.getElementById('input-date').value = item.date;
       }
@@ -544,6 +564,8 @@
       const colorRadio = document.querySelector('input[name="color-tag"]:checked');
       const color = colorRadio ? colorRadio.value : '#6366f1';
 
+      const existingItem = schedules.find(s => s.id === id);
+
       const newItem = {
         id,
         type,
@@ -553,7 +575,9 @@
         cast: document.getElementById('input-cast').value,
         memo: document.getElementById('input-memo').value,
         day: type === 'weekly' ? document.getElementById('input-day').value : null,
-        date: type === 'once' ? document.getElementById('input-date').value : null
+        endDate: type === 'weekly' ? (document.getElementById('input-end-date').value || null) : null,
+        date: type === 'once' ? document.getElementById('input-date').value : null,
+        skippedDates: existingItem ? (existingItem.skippedDates || []) : []
       };
 
       const existingIndex = schedules.findIndex(s => s.id === id);
@@ -574,18 +598,9 @@
     }
 
     // CALENDAR RENDER LOGIC
-    function prevMonth() {
-      currentDate.setMonth(currentDate.getMonth() - 1);
-      renderCalendar();
-    }
-    function nextMonth() {
-      currentDate.setMonth(currentDate.getMonth() + 1);
-      renderCalendar();
-    }
-    function todayMonth() {
-      currentDate = new Date();
-      renderCalendar();
-    }
+    function prevMonth() { currentDate.setMonth(currentDate.getMonth() - 1); renderCalendar(); }
+    function nextMonth() { currentDate.setMonth(currentDate.getMonth() + 1); renderCalendar(); }
+    function todayMonth() { currentDate = new Date(); renderCalendar(); }
 
     function renderCalendar() {
       const year = currentDate.getFullYear();
@@ -608,9 +623,9 @@
       const todayStr = new Date().toISOString().split('T')[0];
 
       for (let day = 1; day <= daysInMonth; day++) {
+        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         const cellDate = new Date(year, month, day);
         const dayOfWeek = cellDate.getDay();
-        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         const isToday = dateStr === todayStr;
 
         const cell = document.createElement('div');
@@ -633,9 +648,16 @@
         const itemsContainer = document.createElement('div');
         itemsContainer.className = 'space-y-1 overflow-y-auto max-h-[75px] custom-scrollbar flex-1';
 
+        // Filter active shows for this day
         const dayEvents = schedules.filter(s => {
+          // Check if skipped on this specific date
+          if (s.skippedDates && s.skippedDates.includes(dateStr)) return false;
+
           if (s.type === 'weekly') {
-            return parseInt(s.day) === dayOfWeek;
+            if (parseInt(s.day) !== dayOfWeek) return false;
+            // Check end date
+            if (s.endDate && dateStr > s.endDate) return false;
+            return true;
           } else {
             return s.date === dateStr;
           }
@@ -643,16 +665,18 @@
 
         dayEvents.forEach(item => {
           const badge = document.createElement('div');
-          badge.className = 'p-1 rounded text-[10px] leading-tight cursor-pointer hover:opacity-80 transition text-white font-medium shadow-2xs';
+          badge.className = 'p-1 rounded text-[10px] leading-tight cursor-pointer hover:opacity-90 transition text-white font-medium shadow-2xs flex items-center justify-between group/badge';
           badge.style.backgroundColor = item.color || '#6366f1';
-          badge.onclick = (e) => {
-            e.stopPropagation();
-            editSchedule(item.id);
-          };
+          badge.onclick = () => editSchedule(item.id);
 
           badge.innerHTML = `
-            <div class="truncate"><span>${item.time} ${escapeHtml(item.title)}</span></div>
-            ${item.cast ? `<div class="text-[9px] opacity-90 truncate"><i class="fa-regular fa-user mr-0.5"></i>${escapeHtml(item.cast)}</div>` : ''}
+            <div class="truncate mr-1">
+              <div>${item.time} ${escapeHtml(item.title)}</div>
+              ${item.cast ? `<div class="text-[9px] opacity-90 truncate"><i class="fa-regular fa-user mr-0.5"></i>${escapeHtml(item.cast)}</div>` : ''}
+            </div>
+            <button onclick="toggleSkipDate('${item.id}', '${dateStr}', event)" title="この日のみ休止（非表示）" class="opacity-0 group-hover/badge:opacity-100 hover:bg-black/20 p-0.5 rounded text-[9px] shrink-0 transition">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
           `;
           itemsContainer.appendChild(badge);
         });
@@ -680,13 +704,7 @@
       });
 
       if (filtered.length === 0) {
-        tbody.innerHTML = `
-          <tr>
-            <td colspan="5" class="text-center py-6 text-slate-400">
-              番組予定がありません
-            </td>
-          </tr>
-        `;
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-6 text-slate-400">番組予定がありません</td></tr>`;
         return;
       }
 
@@ -696,15 +714,22 @@
 
         let dateDisplay = '';
         if (item.type === 'weekly') {
-          dateDisplay = `<span class="inline-flex items-center gap-1 font-semibold text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100"><i class="fa-solid fa-rotate-right text-[9px]"></i> 毎週${dayNames[item.day]} ${item.time}</span>`;
+          const endText = item.endDate ? ` (${item.endDate}まで)` : '';
+          dateDisplay = `<span class="inline-flex items-center gap-1 font-semibold text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100"><i class="fa-solid fa-rotate-right text-[9px]"></i> 毎週${dayNames[item.day]} ${item.time}${endText}</span>`;
         } else {
           dateDisplay = `<span class="inline-flex items-center gap-1 font-semibold text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-100"><i class="fa-regular fa-calendar text-[9px]"></i> ${item.date || '日付未定'} ${item.time}</span>`;
         }
 
         const colorDot = `<span class="w-2 h-2 rounded-full inline-block mr-1.5 shrink-0" style="background-color: ${item.color || '#6366f1'}"></span>`;
+        
+        // Skipped info
+        let skipBadge = '';
+        if (item.skippedDates && item.skippedDates.length > 0) {
+          skipBadge = `<div class="text-[9px] text-amber-600 mt-0.5"><i class="fa-solid fa-ban mr-0.5"></i>休止日: ${item.skippedDates.join(', ')}</div>`;
+        }
 
         tr.innerHTML = `
-          <td class="py-1.5 px-3 whitespace-nowrap text-[11px]">${dateDisplay}</td>
+          <td class="py-1.5 px-3 whitespace-nowrap text-[11px]">${dateDisplay}${skipBadge}</td>
           <td class="py-1.5 px-3 font-semibold text-slate-800"><div class="flex items-center">${colorDot}${escapeHtml(item.title)}</div></td>
           <td class="py-1.5 px-3 text-slate-600">${item.cast ? `<span class="inline-flex items-center gap-1 text-[11px]"><i class="fa-regular fa-user text-slate-400"></i> ${escapeHtml(item.cast)}</span>` : '<span class="text-slate-300">-</span>'}</td>
           <td class="py-1.5 px-3 text-slate-500 max-w-xs truncate text-[11px]">${escapeHtml(item.memo || '-')}</td>
