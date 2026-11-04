@@ -2,7 +2,6 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <!-- スマホでの文字入力時に画面が勝手にズームしてサイズが変わるのを防止 -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>マイ TV 予定表</title>
   <!-- Tailwind CSS CDN -->
@@ -37,12 +36,11 @@
       background: #fbcfe8;
       border-radius: 3px;
     }
-    /* カラーピッカーのスタイルを整える */
     input[type="color"] {
       -webkit-appearance: none;
       border: none;
-      width: 28px;
-      height: 28px;
+      width: 26px;
+      height: 26px;
       border-radius: 50%;
       cursor: pointer;
       background: none;
@@ -109,9 +107,8 @@
             <span class="text-xs font-bold text-slate-700 tracking-tight">マイ TV 予定表</span>
           </div>
 
-          <!-- Icon Only Buttons & Controls -->
+          <!-- Controls -->
           <div class="flex items-center space-x-1.5">
-            <!-- View Switcher Tabs (Icon Only) -->
             <div class="bg-pink-50/80 p-0.5 rounded-xl flex text-xs font-medium text-slate-600 border border-pink-100">
               <button id="view-calendar-btn" onclick="switchView('calendar')" title="カレンダー表示" class="w-7 h-7 rounded-lg transition-all flex items-center justify-center bg-white text-pink-600 shadow-xs font-bold">
                 <i class="fa-regular fa-calendar-days"></i>
@@ -121,17 +118,14 @@
               </button>
             </div>
 
-            <!-- Talent Mgmt Button -->
             <button onclick="openTalentModal()" title="タレント管理" class="border border-pink-200 bg-white hover:bg-pink-50/50 text-slate-600 w-7 h-7 rounded-xl transition flex items-center justify-center">
               <i class="fa-regular fa-user text-pink-400"></i>
             </button>
 
-            <!-- Add Schedule Button -->
             <button onclick="openModal()" title="予定を追加" class="bg-gradient-to-r from-pink-400 to-purple-400 hover:from-pink-500 hover:to-purple-500 text-white w-7 h-7 rounded-xl shadow-xs shadow-pink-200 transition flex items-center justify-center">
               <i class="fa-solid fa-plus text-xs"></i>
             </button>
 
-            <!-- Logout Button -->
             <button onclick="handleLogout()" title="ログアウト" class="text-slate-400 hover:text-rose-500 w-7 h-7 rounded-xl transition flex items-center justify-center">
               <i class="fa-solid fa-right-from-bracket text-xs"></i>
             </button>
@@ -161,11 +155,12 @@
           </div>
         </div>
 
+        <!-- 画面に収まるカレンダーグリッド -->
         <div class="bg-white rounded-xl border border-pink-100 shadow-xs flex-1 flex flex-col min-h-0 overflow-hidden">
           <div class="grid grid-cols-7 border-b border-pink-100 bg-pink-50/30 text-center text-[10px] font-bold text-slate-600 py-1 shrink-0">
             <span class="text-rose-400">日</span><span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span class="text-sky-400">土</span>
           </div>
-          <div id="calendar-grid" class="grid grid-cols-7 grid-rows-5 flex-1 divide-x divide-y divide-pink-50 h-full"></div>
+          <div id="calendar-grid" class="grid grid-cols-7 flex-1 divide-x divide-y divide-pink-50 h-full overflow-hidden"></div>
         </div>
       </section>
 
@@ -259,11 +254,10 @@
 
           <div>
             <label class="block text-[10px] font-bold text-slate-500 mb-0.5">時間 <span class="text-rose-400">*</span></label>
-            <input type="time" id="input-time" required class="w-full bg-pink-50/30 border border-pink-200/80 rounded-lg px-2 py-1.5 text-xs focus:ring-1 focus:ring-pink-400 outline-none">
+            <input type="time" id="input-time" required class="w-full bg-pink-50/30 border border-pink-200/80 rounded-lg px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-pink-400 outline-none">
           </div>
         </div>
 
-        <!-- Collapsible Weekly End Date -->
         <div id="field-weekly-end" class="text-[10px]">
           <button type="button" onclick="toggleEndDateVisibility()" class="text-pink-500 hover:underline font-bold flex items-center gap-1">
             <i class="fa-solid fa-clock-rotate-left"></i>
@@ -294,19 +288,19 @@
           <input type="text" id="input-memo" placeholder="局名、録画メモなど" class="w-full bg-pink-50/30 border border-pink-200/80 rounded-lg px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-pink-400 outline-none">
         </div>
 
-        <!-- 直感的なカラーパレット選択セクション -->
+        <!-- カラータグ選択・管理セクション -->
         <div class="bg-pink-50/30 p-2.5 rounded-xl border border-pink-100 space-y-2">
-          <label class="block text-[10px] font-bold text-slate-600">カラータグの設定</label>
+          <div class="flex justify-between items-center">
+            <label class="block text-[10px] font-bold text-slate-600">カラータグの設定</label>
+            <button type="button" onclick="openTagManagerModal()" class="text-[9px] text-pink-500 hover:underline font-bold"><i class="fa-solid fa-gear"></i> タグの編集・削除</button>
+          </div>
           <div class="flex items-center gap-3">
-            <!-- カラーピッカー -->
             <div class="flex items-center gap-1.5">
               <input type="color" id="input-custom-color" value="#f472b6" title="カラーパレットを開く">
-              <span class="text-[10px] text-slate-500 font-medium">色を選択</span>
+              <span class="text-[10px] text-slate-500 font-medium">色</span>
             </div>
-            <!-- タグ名入力 -->
             <input type="text" id="input-color-name" placeholder="タグ名 (例: 推し)" value="通常" class="flex-1 bg-white border border-pink-200/80 rounded-lg px-2.5 py-1 text-xs focus:ring-1 focus:ring-pink-400 outline-none">
           </div>
-          <!-- 保存済みクイックパレット -->
           <div id="quick-color-palette" class="flex flex-wrap gap-1.5 pt-1"></div>
         </div>
 
@@ -315,6 +309,17 @@
           <button type="submit" class="px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-pink-400 to-purple-400 text-white text-xs font-bold shadow-xs shadow-pink-200 transition">保存する</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- TAG MANAGEMENT MODAL (タグ編集・削除用) -->
+  <div id="tag-manager-modal-backdrop" class="fixed inset-0 bg-slate-900/20 backdrop-blur-xs z-50 flex items-center justify-center p-3 opacity-0 pointer-events-none transition-opacity duration-200">
+    <div class="bg-white rounded-2xl shadow-xl border border-pink-100 w-full max-w-xs overflow-hidden p-4 space-y-3">
+      <div class="flex items-center justify-between border-b border-pink-100 pb-2">
+        <h3 class="font-bold text-slate-700 text-xs">カラータグの編集・削除</h3>
+        <button onclick="closeTagManagerModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xs"></i></button>
+      </div>
+      <div id="tag-manager-list" class="space-y-1.5 max-h-48 overflow-y-auto custom-scrollbar"></div>
     </div>
   </div>
 
@@ -498,8 +503,7 @@
     };
 
     window.toggleEndDateVisibility = function() {
-      const wrapper = document.getElementById('end-date-wrapper');
-      wrapper.classList.toggle('hidden');
+      document.getElementById('end-date-wrapper').classList.toggle('hidden');
     };
 
     window.openModal = function(presetDate = null) {
@@ -559,7 +563,65 @@
       saveData();
     };
 
-    // クイックカラーパレット（よく使う色やカスタムタグの選択）
+    // タグ管理モーダル
+    window.openTagManagerModal = function() {
+      renderTagManagerList();
+      document.getElementById('tag-manager-modal-backdrop').classList.remove('opacity-0', 'pointer-events-none');
+    };
+    window.closeTagManagerModal = function() {
+      document.getElementById('tag-manager-modal-backdrop').classList.add('opacity-0', 'pointer-events-none');
+    };
+
+    function renderTagManagerList() {
+      const list = document.getElementById('tag-manager-list');
+      list.innerHTML = '';
+      if (window.customTags.length === 0) {
+        list.innerHTML = '<div class="text-slate-400 text-center py-2 text-[10px]">タグがありません</div>';
+        return;
+      }
+      window.customTags.forEach((tag, idx) => {
+        const item = document.createElement('div');
+        item.className = 'flex items-center justify-between text-[11px] bg-pink-50/40 px-2.5 py-1.5 rounded-lg border border-pink-100';
+        item.innerHTML = `
+          <div class="flex items-center gap-2">
+            <input type="color" value="${tag.color}" onchange="updateTagColor('${tag.id}', this.value)" style="width:20px;height:20px;">
+            <input type="text" value="${escapeHtml(tag.name)}" onchange="updateTagName('${tag.id}', this.value)" class="bg-white border border-pink-200 rounded px-1.5 py-0.5 text-xs outline-none w-28">
+          </div>
+          <button onclick="deleteTag('${tag.id}')" class="text-slate-400 hover:text-rose-500 p-1"><i class="fa-solid fa-trash-can"></i></button>
+        `;
+        list.appendChild(item);
+      });
+    }
+
+    window.updateTagName = function(id, newName) {
+      const tag = window.customTags.find(t => t.id === id);
+      if (tag) {
+        tag.name = newName;
+        saveUserData();
+        renderQuickColorPalette();
+      }
+    };
+
+    window.updateTagColor = function(id, newColor) {
+      const tag = window.customTags.find(t => t.id === id);
+      if (tag) {
+        tag.color = newColor;
+        saveUserData();
+        renderQuickColorPalette();
+        renderCalendar();
+        renderTable();
+      }
+    };
+
+    window.deleteTag = function(id) {
+      if (confirm('このカラータグを削除しますか？')) {
+        window.customTags = window.customTags.filter(t => t.id !== id);
+        saveUserData();
+        renderTagManagerList();
+        renderQuickColorPalette();
+      }
+    };
+
     function renderQuickColorPalette() {
       const paletteContainer = document.getElementById('quick-color-palette');
       paletteContainer.innerHTML = '';
@@ -582,7 +644,6 @@
       renderTalentManagerList();
       document.getElementById('talent-modal-backdrop').classList.remove('opacity-0', 'pointer-events-none');
     };
-
     window.closeTalentModal = function() {
       document.getElementById('talent-modal-backdrop').classList.add('opacity-0', 'pointer-events-none');
     };
@@ -698,8 +759,7 @@
       const color = document.getElementById('input-custom-color').value;
       const colorName = document.getElementById('input-color-name').value || 'カスタム';
 
-      // 新しい色をカスタムタグに自動記憶（重複防止）
-      if (!window.customTags.some(t => t.color === color)) {
+      if (!window.customTags.some(t => t.color === color || t.name === colorName)) {
         window.customTags.push({ id: 'tag-' + Date.now(), name: colorName, color: color });
       }
 
@@ -743,13 +803,17 @@
 
       const firstDay = new Date(year, month, 1).getDay();
       const daysInMonth = new Date(year, month + 1, 0).getDate();
+      const totalCells = firstDay + daysInMonth;
+      // 5週（35コマ）か6週（42コマ）を動的に判定して綺麗に収める
+      const numRows = totalCells > 35 ? 6 : 5;
 
       const grid = document.getElementById('calendar-grid');
+      grid.style.gridTemplateRows = `repeat(${numRows}, minmax(0, 1fr))`;
       grid.innerHTML = '';
 
       for (let i = 0; i < firstDay; i++) {
         const emptyCell = document.createElement('div');
-        emptyCell.className = 'bg-pink-50/20 p-0.5 border-b border-r border-pink-50 h-full';
+        emptyCell.className = 'bg-pink-50/10 p-0.5 border-b border-r border-pink-50 h-full';
         grid.appendChild(emptyCell);
       }
 
