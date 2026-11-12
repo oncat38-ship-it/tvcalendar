@@ -948,7 +948,12 @@
     window.addScheduleFromDayDetails = function() { const date = window.activeDayDetail; closeDayDetails(); window.pendingDayAfterEdit = date; openModal(date); };
 
     function bridgeAuthHeaders() {
-      return window.currentUser.getIdToken().then(token => ({ 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }));
+      return window.currentUser.getIdToken().then(token => ({
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        // 中継Workerにテレビ予定表からのリクエストであることを伝える
+        'X-Bridge-App': 'tv'
+      }));
     }
     async function bridgeRequest(path, options = {}) {
       const headers = await bridgeAuthHeaders();
