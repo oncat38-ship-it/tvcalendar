@@ -963,14 +963,20 @@
       document.getElementById('bridge-message').textContent = '';
       document.getElementById('bridge-code-area').classList.add('hidden');
       try {
+        // 先にWorker自体の稼働を確認し、status APIの失敗と通信不能を区別する
+        const healthResponse = await fetch(`${window.bridgeBaseUrl}/api/health`, { method: 'GET' });
+        if (!healthResponse.ok) throw new Error(`中継サイトの稼働確認に失敗しました（HTTP ${healthResponse.status}）`);
+        const health = await healthResponse.json().catch(() => ({}));
+        if (health.ok === false) throw new Error('中継サイトが正常状態を返していません');
         const data = await bridgeRequest('/api/link/status');
         const connected = !!(data.connected || data.linked || data.status === 'connected');
-        document.getElementById('bridge-status').textContent = connected ? 'ToDoカレンダーと接続済みです' : 'まだ接続されていません';
+        document.getElementById('bridge-status').textContent = connected ? 'ToDoカレンダーと接続済みです' : '中継サイトは正常です／まだ連携されていません';
         document.getElementById('bridge-issue-btn').classList.toggle('hidden', connected);
         document.getElementById('bridge-unlink-btn').classList.toggle('hidden', !connected);
       } catch (err) {
-        document.getElementById('bridge-status').textContent = '状態を確認できませんでした';
-        document.getElementById('bridge-message').textContent = err.message + '。中継サイトのAPI仕様と接続状態を確認する必要があります。';
+        document.getElementById('bridge-status').textContent = '中継サイトまたは状態確認APIに問題があります';
+        const detail = err instanceof TypeError ? '通信またはCORSエラーの可能性があります' : err.message;
+        document.getElementById('bridge-message').textContent = `${detail}。これは「未接続」とは別の状態です。連携コード発行前に中継Worker側のAPI仕様を確認する必要があります。`;
         document.getElementById('bridge-issue-btn').classList.remove('hidden');
         document.getElementById('bridge-unlink-btn').classList.add('hidden');
       }
@@ -1029,7 +1035,7 @@
         const isToday = dateStr === todayStr;
 
         const cell = document.createElement('div');
-        cell.className = `p-1 border-b border-r border-pink-100/80 relative group hover:bg-violet-50/60 transition flex flex-col justify-between h-full overflow-hidden cursor-pointer ${isToday ? 'bg-pink-100/45' : ''}`;
+        cell.className = `p-1.5 border-b border-r border-pink-100/80 relative group hover:bg-violet-50/70 transition flex flex-col justify-between h-full overflow-hidden cursor-pointer ${isToday ? 'bg-pink-100/55 ring-1 ring-inset ring-pink-300/70' : 'bg-white/35'}`;
         cell.setAttribute('role', 'button');
         cell.setAttribute('aria-label', `${dateStr} の予定を表示`);
         cell.onclick = () => openDayDetails(dateStr);
@@ -1039,7 +1045,7 @@
         if (dayOfWeek === 6) dayNumColor = 'text-sky-400 font-bold';
 
         const topRow = document.createElement('div');
-        topRow.className = 'flex items-center justify-between mb-0.5 shrink-0';
+        topRow.className = 'flex items-center justify-between mb-1 shrink-0';
         topRow.innerHTML = `
           <span class="${dayNumColor} ${isToday ? 'w-3.5 h-3.5 bg-pink-400 text-white rounded-full flex items-center justify-center font-bold text-[9px]' : 'text-[10px] font-bold'}">${day}</span>
           <button onclick="event.stopPropagation();openModal('${dateStr}')" title="この日に予定を追加" class="opacity-0 group-hover:opacity-100 text-pink-400 hover:text-pink-600 w-3.5 h-3.5 rounded-md hover:bg-[#fbf8fc] flex items-center justify-center transition">
@@ -1049,7 +1055,7 @@
         cell.appendChild(topRow);
 
         const itemsContainer = document.createElement('div');
-        itemsContainer.className = 'space-y-0.5 overflow-y-auto custom-scrollbar flex-1 min-h-0';
+        itemsContainer.className = 'space-y-1 overflow-y-auto custom-scrollbar flex-1 min-h-0';
 
         const dayEvents = window.schedules.filter(s => {
           if (s.skippedDates && s.skippedDates.includes(dateStr)) return false;
@@ -1064,14 +1070,17 @@
 
         dayEvents.forEach(item => {
           const badge = document.createElement('div');
-          badge.className = 'p-0.5 px-1 rounded text-[9px] leading-tight cursor-pointer hover:brightness-95 transition text-white font-medium shadow-sm flex items-center justify-between group/badge';
+          badge.className = 'px-1.5 py-1 rounded-md text-[10px] leading-[1.2] cursor-pointer hover:brightness-95 transition font-bold shadow-sm flex items-center justify-between gap-1 group/badge';
           badge.style.backgroundColor = item.color || '#f472b6';
           badge.style.color = getReadableTextColor(item.color || '#f472b6');
+          badge.style.border = '1px solid rgba(30, 25, 45, .22)';
+          badge.style.boxShadow = '0 1px 2px rgba(30, 20, 50, .16)';
+          badge.style.minHeight = '21px';
           badge.onclick = (event) => { event.stopPropagation(); editSchedule(item.id); };
 
           badge.innerHTML = `
             <div class="truncate mr-0.5">
-              <span class="font-bold">${item.time}</span> ${escapeHtml(item.title)}
+              <span class="font-extrabold whitespace-nowrap">${escapeHtml(item.time || '')}</span><span class="font-semibold">${escapeHtml(item.title || '')}</span>
             </div>
             <button onclick="toggleSkipDate('${item.id}', '${dateStr}', event)" title="休止" class="opacity-0 group-hover/badge:opacity-100 hover:bg-black/20 p-0.5 rounded text-[8px] shrink-0 transition">
               <i class="fa-solid fa-xmark"></i>
