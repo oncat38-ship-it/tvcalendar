@@ -116,6 +116,9 @@
               <button id="view-table-btn" onclick="switchView('table')" title="リスト表示" class="w-7 h-7 rounded-lg transition-all flex items-center justify-center hover:text-slate-900">
                 <i class="fa-solid fa-list-check"></i>
               </button>
+              <button id="view-groups-btn" onclick="switchView('groups')" title="グループ週間予定" class="w-7 h-7 rounded-lg transition-all flex items-center justify-center hover:text-slate-900">
+                <i class="fa-solid fa-people-group"></i>
+              </button>
             </div>
 
             <button onclick="openTalentModal()" title="タレント管理" class="border border-pink-200 bg-white hover:bg-pink-50/50 text-slate-600 w-7 h-7 rounded-xl transition flex items-center justify-center">
@@ -200,7 +203,58 @@
         </div>
       </section>
 
+      <!-- GROUP WEEKLY VIEW (追加機能。既存の番組カレンダーとは独立) -->
+      <section id="group-view" class="flex-1 flex flex-col min-h-0 space-y-2 hidden">
+        <div class="flex items-center justify-between gap-2 shrink-0">
+          <div>
+            <h2 class="text-sm font-bold text-slate-700">グループ週間予定</h2>
+            <p class="text-[10px] text-slate-400">人物・番組などを自由なグループで整理できます</p>
+          </div>
+          <button onclick="openGroupModal()" class="shrink-0 bg-gradient-to-r from-pink-400 to-purple-400 text-white px-3 py-2 rounded-xl text-[11px] font-bold shadow-sm">
+            <i class="fa-solid fa-plus mr-1"></i>グループ作成
+          </button>
+        </div>
+        <div id="group-list" class="grid grid-cols-1 sm:grid-cols-2 gap-2 overflow-y-auto custom-scrollbar pb-2"></div>
+        <div id="group-detail" class="hidden flex-1 min-h-0 flex flex-col gap-2 overflow-hidden">
+          <div class="bg-white rounded-xl border border-pink-100 p-3 shrink-0">
+            <div class="flex items-center gap-2">
+              <button onclick="closeGroupDetail()" title="グループ一覧へ戻る" class="w-8 h-8 rounded-lg bg-pink-50 text-pink-500 shrink-0"><i class="fa-solid fa-arrow-left"></i></button>
+              <div id="group-detail-avatar" class="w-10 h-10 rounded-xl bg-pink-50 flex items-center justify-center text-pink-400 text-lg shrink-0 overflow-hidden"></div>
+              <div class="min-w-0 flex-1">
+                <h3 id="group-detail-name" class="font-bold text-slate-700 text-sm truncate"></h3>
+                <p id="group-detail-description" class="text-[10px] text-slate-400 truncate"></p>
+              </div>
+              <button onclick="editCurrentGroup()" title="グループ編集" class="w-8 h-8 rounded-lg border border-pink-100 text-slate-500"><i class="fa-regular fa-pen-to-square"></i></button>
+              <button onclick="deleteCurrentGroup()" title="グループ削除" class="w-8 h-8 rounded-lg border border-rose-100 text-rose-400"><i class="fa-regular fa-trash-can"></i></button>
+            </div>
+          </div>
+          <div class="bg-white rounded-xl border border-pink-100 p-2 shrink-0">
+            <div class="grid grid-cols-7 gap-1" id="group-weekdays"></div>
+          </div>
+          <div class="flex items-center justify-between shrink-0 px-1">
+            <div><h4 id="group-selected-day" class="font-bold text-slate-700 text-xs"></h4><p class="text-[9px] text-slate-400">この曜日の登録内容</p></div>
+            <button onclick="openGroupEntryModal()" class="bg-pink-50 border border-pink-200 text-pink-600 px-3 py-1.5 rounded-lg text-[10px] font-bold"><i class="fa-solid fa-plus mr-1"></i>予定を追加</button>
+          </div>
+          <div id="group-entry-list" class="flex-1 min-h-0 overflow-y-auto custom-scrollbar space-y-2 pb-2"></div>
+        </div>
+      </section>
+
     </main>
+  </div>
+
+  <!-- GROUP EDIT MODAL (追加機能) -->
+  <div id="group-modal-backdrop" class="fixed inset-0 bg-slate-900/30 backdrop-blur-sm z-[60] flex items-center justify-center p-3 opacity-0 pointer-events-none transition-opacity duration-200">
+    <div class="bg-white rounded-2xl shadow-xl border border-pink-100 w-full max-w-sm overflow-hidden max-h-[90vh] flex flex-col">
+      <div class="px-4 py-3 border-b border-pink-100 flex items-center justify-between bg-pink-50/40 shrink-0">
+        <h3 id="group-modal-title" class="font-bold text-slate-700 text-xs">グループを作成</h3>
+        <button onclick="closeGroupModal()" class="w-7 h-7 rounded-full text-slate-400 hover:bg-pink-100"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div id="group-modal-body" class="p-4 space-y-3 overflow-y-auto custom-scrollbar"></div>
+      <div class="p-3 border-t border-pink-100 flex justify-end gap-2 shrink-0">
+        <button onclick="closeGroupModal()" class="px-3 py-2 rounded-lg border border-pink-200 text-slate-600 text-xs">キャンセル</button>
+        <button id="group-modal-save" class="px-4 py-2 rounded-lg bg-gradient-to-r from-pink-400 to-purple-400 text-white font-bold text-xs">保存する</button>
+      </div>
+    </div>
   </div>
 
   <!-- ADD / EDIT SCHEDULE MODAL -->
@@ -378,6 +432,11 @@
 
     window.schedules = [];
     window.registeredTalents = [];
+    // グループ週間予定は既存の番組予定(schedules)と分離して保存する
+    window.weeklyGroups = [];
+    window.selectedGroupId = null;
+    window.selectedGroupDay = new Date().getDay();
+    window.pendingGroupImage = null;
     window.customTags = [
       { id: 'tag-1', name: '通常', color: '#f472b6' },
       { id: 'tag-2', name: '推し', color: '#a78bfa' },
@@ -450,6 +509,7 @@
           window.schedules = data.schedules || [];
           window.registeredTalents = data.talents || [];
           window.customTags = data.customTags || window.customTags;
+          window.weeklyGroups = Array.isArray(data.weeklyGroups) ? data.weeklyGroups : [];
         } else {
           await saveUserData();
         }
@@ -484,22 +544,23 @@
       window.currentView = view;
       const calendarView = document.getElementById('calendar-view');
       const tableView = document.getElementById('table-view');
+      const groupView = document.getElementById('group-view');
       const calBtn = document.getElementById('view-calendar-btn');
       const tblBtn = document.getElementById('view-table-btn');
+      const groupBtn = document.getElementById('view-groups-btn');
+      const activeClass = 'w-7 h-7 rounded-lg transition-all flex items-center justify-center bg-white text-pink-600 shadow-xs font-bold';
+      const inactiveClass = 'w-7 h-7 rounded-lg transition-all flex items-center justify-center hover:text-slate-900';
 
-      if (view === 'calendar') {
-        calendarView.classList.remove('hidden');
-        tableView.classList.add('hidden');
-        calBtn.className = 'w-7 h-7 rounded-lg transition-all flex items-center justify-center bg-white text-pink-600 shadow-xs font-bold';
-        tblBtn.className = 'w-7 h-7 rounded-lg transition-all flex items-center justify-center hover:text-slate-900';
-        renderCalendar();
-      } else {
-        calendarView.classList.add('hidden');
-        tableView.classList.remove('hidden');
-        tblBtn.className = 'w-7 h-7 rounded-lg transition-all flex items-center justify-center bg-white text-pink-600 shadow-xs font-bold';
-        calBtn.className = 'w-7 h-7 rounded-lg transition-all flex items-center justify-center hover:text-slate-900';
-        renderTable();
-      }
+      calendarView.classList.toggle('hidden', view !== 'calendar');
+      tableView.classList.toggle('hidden', view !== 'table');
+      groupView.classList.toggle('hidden', view !== 'groups');
+      calBtn.className = view === 'calendar' ? activeClass : inactiveClass;
+      tblBtn.className = view === 'table' ? activeClass : inactiveClass;
+      groupBtn.className = view === 'groups' ? activeClass : inactiveClass;
+
+      if (view === 'calendar') renderCalendar();
+      else if (view === 'table') renderTable();
+      else renderGroupView();
     };
 
     window.toggleEndDateVisibility = function() {
@@ -932,6 +993,244 @@
         tbody.appendChild(tr);
       });
     }
+
+    // ==============================
+    // グループ週間予定（既存の番組予定とは独立）
+    // ==============================
+    const groupDayNames = ['日', '月', '火', '水', '木', '金', '土'];
+
+    async function saveWeeklyGroups() {
+      if (!window.currentUser) return;
+      try {
+        const userDocRef = doc(db, 'users', window.currentUser.uid);
+        const payload = { weeklyGroups: window.weeklyGroups };
+        const byteSize = new Blob([JSON.stringify(payload)]).size;
+        if (byteSize > 550 * 1024) {
+          alert('画像や登録内容が多くなり、保存容量の上限に近づいています。画像を減らしてから再度保存してください。');
+          return false;
+        }
+        await setDoc(userDocRef, payload, { merge: true });
+        return true;
+      } catch (err) {
+        console.error('グループ週間予定の保存に失敗しました:', err);
+        alert('グループの保存に失敗しました。通信状態を確認して、もう一度お試しください。');
+        return false;
+      }
+    }
+
+    function selectedGroup() {
+      return window.weeklyGroups.find(g => g.id === window.selectedGroupId) || null;
+    }
+
+    function groupAvatarHtml(image, fallback = '✦', size = 'w-12 h-12') {
+      if (image) return `<img src="${image}" alt="" class="${size} rounded-xl object-cover shrink-0">`;
+      return `<div class="${size} rounded-xl bg-gradient-to-br from-pink-100 to-purple-100 text-pink-500 flex items-center justify-center font-bold text-lg shrink-0">${escapeHtml(fallback)}</div>`;
+    }
+
+    function renderGroupView() {
+      const list = document.getElementById('group-list');
+      const detail = document.getElementById('group-detail');
+      if (!list || !detail) return;
+      const group = selectedGroup();
+      list.classList.toggle('hidden', !!group);
+      detail.classList.toggle('hidden', !group);
+
+      if (!group) {
+        if (window.weeklyGroups.length === 0) {
+          list.innerHTML = `<div class="col-span-full bg-white rounded-xl border border-dashed border-pink-200 p-7 text-center"><div class="text-3xl text-pink-200 mb-2"><i class="fa-solid fa-people-group"></i></div><p class="font-bold text-slate-600 text-xs">グループはまだありません</p><p class="text-[10px] text-slate-400 mt-1">「グループ作成」から、人物・番組など好きなまとまりを作れます。</p></div>`;
+          return;
+        }
+        list.innerHTML = '';
+        window.weeklyGroups.forEach(g => {
+          const card = document.createElement('div');
+          card.className = 'bg-white border border-pink-100 rounded-xl p-3 shadow-xs flex items-center gap-3';
+          const avatar = document.createElement('div');
+          avatar.innerHTML = groupAvatarHtml(g.image, '✦', 'w-12 h-12');
+          const info = document.createElement('div');
+          info.className = 'min-w-0 flex-1';
+          info.innerHTML = `<h3 class="font-bold text-slate-700 text-xs truncate">${escapeHtml(g.name)}</h3><p class="text-[10px] text-slate-400 mt-0.5 line-clamp-2">${escapeHtml(g.description || '説明はありません')}</p><p class="text-[9px] text-pink-400 mt-1">登録内容 ${Array.isArray(g.entries) ? g.entries.length : 0} 件</p>`;
+          const open = document.createElement('button');
+          open.className = 'w-8 h-8 rounded-lg bg-pink-50 text-pink-500 shrink-0';
+          open.innerHTML = '<i class="fa-solid fa-chevron-right"></i>';
+          open.title = '週間予定を開く';
+          open.onclick = () => { window.selectedGroupId = g.id; renderGroupView(); };
+          card.append(avatar, info, open);
+          card.addEventListener('click', e => { if (e.target !== open && !open.contains(e.target)) { window.selectedGroupId = g.id; renderGroupView(); } });
+          list.appendChild(card);
+        });
+        return;
+      }
+
+      const avatar = document.getElementById('group-detail-avatar');
+      avatar.innerHTML = group.image ? `<img src="${group.image}" alt="" class="w-full h-full object-cover">` : '<i class="fa-solid fa-people-group"></i>';
+      document.getElementById('group-detail-name').textContent = group.name;
+      document.getElementById('group-detail-description').textContent = group.description || '説明はありません';
+
+      const days = document.getElementById('group-weekdays');
+      days.innerHTML = '';
+      groupDayNames.forEach((name, day) => {
+        const btn = document.createElement('button');
+        const active = window.selectedGroupDay === day;
+        btn.className = `rounded-lg py-2 text-xs font-bold transition ${active ? 'bg-pink-400 text-white shadow-sm' : 'bg-pink-50/60 text-slate-500 hover:bg-pink-100'}`;
+        btn.textContent = name;
+        btn.onclick = () => { window.selectedGroupDay = day; renderGroupView(); };
+        days.appendChild(btn);
+      });
+      document.getElementById('group-selected-day').textContent = `${groupDayNames[window.selectedGroupDay]}曜日`;
+
+      const entryList = document.getElementById('group-entry-list');
+      entryList.innerHTML = '';
+      const entries = (group.entries || []).filter(e => Number(e.day) === window.selectedGroupDay).sort((a,b) => (a.time || '').localeCompare(b.time || ''));
+      if (!entries.length) {
+        entryList.innerHTML = `<div class="bg-white border border-dashed border-pink-200 rounded-xl p-6 text-center text-[10px] text-slate-400">この曜日の登録内容はありません。<br>「予定を追加」から登録できます。</div>`;
+        return;
+      }
+      entries.forEach(entry => {
+        const card = document.createElement('div');
+        card.className = 'bg-white border border-pink-100 rounded-xl p-3 flex items-center gap-2.5 shadow-xs';
+        const image = document.createElement('div');
+        image.innerHTML = entry.image ? `<img src="${entry.image}" alt="" class="w-11 h-11 rounded-lg object-cover">` : `<div class="w-11 h-11 rounded-lg bg-purple-50 text-purple-400 flex items-center justify-center text-lg"><i class="${entry.kind === '番組' ? 'fa-solid fa-tv' : entry.kind === '人物' ? 'fa-regular fa-user' : 'fa-regular fa-bookmark'}"></i></div>`;
+        const info = document.createElement('div');
+        info.className = 'min-w-0 flex-1';
+        info.innerHTML = `<div class="flex items-center gap-1.5 mb-0.5"><span class="text-[9px] font-bold text-pink-500">${escapeHtml(entry.time || '')}</span><span class="text-[8px] px-1.5 py-0.5 rounded bg-purple-50 text-purple-500">${escapeHtml(entry.kind || 'その他')}</span></div><p class="font-bold text-slate-700 text-xs break-words">${escapeHtml(entry.title)}</p><p class="text-[10px] text-slate-400 mt-0.5 break-words">${escapeHtml(entry.details || '')}</p>`;
+        const actions = document.createElement('div');
+        actions.className = 'flex flex-col gap-1 shrink-0';
+        const edit = document.createElement('button');
+        edit.className = 'w-7 h-7 rounded-md text-slate-400 hover:bg-pink-50 hover:text-pink-500';
+        edit.innerHTML = '<i class="fa-regular fa-pen-to-square"></i>';
+        edit.title = '編集';
+        edit.onclick = () => openGroupEntryModal(entry.id);
+        const del = document.createElement('button');
+        del.className = 'w-7 h-7 rounded-md text-slate-300 hover:bg-rose-50 hover:text-rose-500';
+        del.innerHTML = '<i class="fa-regular fa-trash-can"></i>';
+        del.title = '削除';
+        del.onclick = () => deleteGroupEntry(entry.id);
+        actions.append(edit, del);
+        card.append(image, info, actions);
+        entryList.appendChild(card);
+      });
+    }
+
+    window.closeGroupDetail = function() { window.selectedGroupId = null; renderGroupView(); };
+    window.editCurrentGroup = function() { const g = selectedGroup(); if (g) openGroupModal(g.id); };
+    window.deleteCurrentGroup = async function() {
+      const g = selectedGroup();
+      if (!g || !confirm(`「${g.name}」グループと登録内容を削除しますか？`)) return;
+      window.weeklyGroups = window.weeklyGroups.filter(x => x.id !== g.id);
+      window.selectedGroupId = null;
+      if (await saveWeeklyGroups()) renderGroupView();
+    };
+
+    function openGroupEditor(title, bodyHtml, onSave) {
+      document.getElementById('group-modal-title').textContent = title;
+      document.getElementById('group-modal-body').innerHTML = bodyHtml;
+      document.getElementById('group-modal-backdrop').classList.remove('opacity-0', 'pointer-events-none');
+      document.getElementById('group-modal-save').onclick = onSave;
+    }
+    window.closeGroupModal = function() {
+      document.getElementById('group-modal-backdrop').classList.add('opacity-0', 'pointer-events-none');
+      window.pendingGroupImage = null;
+    };
+
+    async function readAndCompressGroupImage(file) {
+      if (!file) return null;
+      if (!file.type.startsWith('image/')) throw new Error('画像ファイルを選択してください');
+      const dataUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const img = await new Promise((resolve, reject) => {
+        const image = new Image();
+        image.onload = () => resolve(image);
+        image.onerror = reject;
+        image.src = dataUrl;
+      });
+      const scale = Math.min(1, 240 / Math.max(img.width, img.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(img.width * scale));
+      canvas.height = Math.max(1, Math.round(img.height * scale));
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      let compressed = canvas.toDataURL('image/jpeg', 0.72);
+      if (compressed.length > 110000) compressed = canvas.toDataURL('image/jpeg', 0.5);
+      if (compressed.length > 150000) throw new Error('画像を圧縮しても容量が大きすぎます。別の画像をお試しください。');
+      return compressed;
+    }
+
+    function attachGroupImageInput(inputId, previewId, existingImage) {
+      const input = document.getElementById(inputId);
+      if (!input) return;
+      input.onchange = async () => {
+        const file = input.files && input.files[0];
+        if (!file) return;
+        try {
+          window.pendingGroupImage = await readAndCompressGroupImage(file);
+          const preview = document.getElementById(previewId);
+          if (preview) preview.innerHTML = `<img src="${window.pendingGroupImage}" class="w-full h-full object-cover rounded-lg" alt="画像プレビュー">`;
+        } catch (err) {
+          alert(err.message || '画像を読み込めませんでした');
+          input.value = '';
+        }
+      };
+    }
+
+    window.openGroupModal = function(groupId = null) {
+      const existing = groupId ? window.weeklyGroups.find(g => g.id === groupId) : null;
+      window.pendingGroupImage = existing ? (existing.image || null) : null;
+      const image = existing?.image || '';
+      const body = `
+        <div><label class="block text-[10px] font-bold text-slate-500 mb-1">グループ名 <span class="text-rose-400">*</span></label><input id="group-name-input" maxlength="40" value="${escapeHtml(existing?.name || '')}" placeholder="例：音楽番組、出演者グループ" class="w-full bg-pink-50/40 border border-pink-200 rounded-lg px-3 py-2 text-xs outline-none focus:ring-1 focus:ring-pink-400"></div>
+        <div><label class="block text-[10px] font-bold text-slate-500 mb-1">説明（任意）</label><textarea id="group-description-input" maxlength="160" rows="2" placeholder="グループの説明" class="w-full bg-pink-50/40 border border-pink-200 rounded-lg px-3 py-2 text-xs outline-none focus:ring-1 focus:ring-pink-400">${escapeHtml(existing?.description || '')}</textarea></div>
+        <div><label class="block text-[10px] font-bold text-slate-500 mb-1">グループ画像・アイコン（任意）</label><div class="flex items-center gap-3"><div id="group-image-preview" class="w-14 h-14 rounded-xl bg-pink-50 flex items-center justify-center text-pink-300 overflow-hidden">${image ? `<img src="${image}" class="w-full h-full object-cover" alt="">` : '<i class="fa-regular fa-image text-xl"></i>'}</div><div class="min-w-0 flex-1"><input id="group-image-input" type="file" accept="image/*" class="w-full text-[10px]"><p class="text-[9px] text-slate-400 mt-1">画像は自動で小さく圧縮して保存します。</p><button type="button" id="group-image-clear" class="text-[9px] text-rose-400 mt-1">画像を外す</button></div></div></div>`;
+      openGroupEditor(existing ? 'グループを編集' : 'グループを作成', body, async () => {
+        const name = document.getElementById('group-name-input').value.trim();
+        if (!name) return alert('グループ名を入力してください。');
+        const data = { id: existing?.id || `group-${Date.now()}`, name, description: document.getElementById('group-description-input').value.trim(), image: window.pendingGroupImage || null, entries: existing?.entries || [] };
+        if (existing) Object.assign(existing, data); else window.weeklyGroups.push(data);
+        if (await saveWeeklyGroups()) { window.selectedGroupId = data.id; closeGroupModal(); renderGroupView(); }
+      });
+      attachGroupImageInput('group-image-input', 'group-image-preview', image);
+      document.getElementById('group-image-clear').onclick = () => {
+        window.pendingGroupImage = null;
+        document.getElementById('group-image-preview').innerHTML = '<i class="fa-regular fa-image text-xl"></i>';
+        document.getElementById('group-image-input').value = '';
+      };
+    };
+
+    window.openGroupEntryModal = function(entryId = null) {
+      const group = selectedGroup();
+      if (!group) return;
+      const existing = entryId ? (group.entries || []).find(e => e.id === entryId) : null;
+      window.pendingGroupImage = existing?.image || null;
+      const body = `
+        <div><label class="block text-[10px] font-bold text-slate-500 mb-1">種類</label><select id="group-entry-kind" class="w-full bg-pink-50/40 border border-pink-200 rounded-lg px-3 py-2 text-xs"><option ${existing?.kind === '人物' ? 'selected' : ''}>人物</option><option ${existing?.kind === '番組' ? 'selected' : ''}>番組</option><option ${existing?.kind === 'その他' || !existing ? 'selected' : ''}>その他</option></select></div>
+        <div><label class="block text-[10px] font-bold text-slate-500 mb-1">名前・内容 <span class="text-rose-400">*</span></label><input id="group-entry-title" maxlength="60" value="${escapeHtml(existing?.title || '')}" placeholder="人物名・番組名など" class="w-full bg-pink-50/40 border border-pink-200 rounded-lg px-3 py-2 text-xs outline-none"></div>
+        <div class="grid grid-cols-2 gap-2"><div><label class="block text-[10px] font-bold text-slate-500 mb-1">曜日</label><select id="group-entry-day" class="w-full bg-pink-50/40 border border-pink-200 rounded-lg px-2 py-2 text-xs">${groupDayNames.map((d,i)=>`<option value="${i}" ${Number(existing?.day ?? window.selectedGroupDay) === i ? 'selected' : ''}>${d}曜日</option>`).join('')}</select></div><div><label class="block text-[10px] font-bold text-slate-500 mb-1">時間（任意）</label><input id="group-entry-time" type="time" value="${escapeHtml(existing?.time || '')}" class="w-full bg-pink-50/40 border border-pink-200 rounded-lg px-2 py-2 text-xs"></div></div>
+        <div><label class="block text-[10px] font-bold text-slate-500 mb-1">補足情報（任意）</label><textarea id="group-entry-details" maxlength="240" rows="2" placeholder="出演者、内容、メモなど" class="w-full bg-pink-50/40 border border-pink-200 rounded-lg px-3 py-2 text-xs outline-none">${escapeHtml(existing?.details || '')}</textarea></div>
+        <div><label class="block text-[10px] font-bold text-slate-500 mb-1">画像・アイコン（任意）</label><div class="flex items-center gap-3"><div id="group-entry-image-preview" class="w-14 h-14 rounded-xl bg-pink-50 flex items-center justify-center text-pink-300 overflow-hidden">${existing?.image ? `<img src="${existing.image}" class="w-full h-full object-cover" alt="">` : '<i class="fa-regular fa-image text-xl"></i>'}</div><div class="min-w-0 flex-1"><input id="group-entry-image-input" type="file" accept="image/*" class="w-full text-[10px]"><p class="text-[9px] text-slate-400 mt-1">人物の顔や番組マスコットなどを設定できます。</p><button type="button" id="group-entry-image-clear" class="text-[9px] text-rose-400 mt-1">画像を外す</button></div></div></div>`;
+      openGroupEditor(existing ? '登録内容を編集' : '登録内容を追加', body, async () => {
+        const title = document.getElementById('group-entry-title').value.trim();
+        if (!title) return alert('名前・内容を入力してください。');
+        const data = { id: existing?.id || `entry-${Date.now()}`, kind: document.getElementById('group-entry-kind').value, title, day: Number(document.getElementById('group-entry-day').value), time: document.getElementById('group-entry-time').value, details: document.getElementById('group-entry-details').value.trim(), image: window.pendingGroupImage || null };
+        if (!Array.isArray(group.entries)) group.entries = [];
+        if (existing) Object.assign(existing, data); else group.entries.push(data);
+        if (await saveWeeklyGroups()) { window.selectedGroupDay = data.day; closeGroupModal(); renderGroupView(); }
+      });
+      attachGroupImageInput('group-entry-image-input', 'group-entry-image-preview', existing?.image);
+      document.getElementById('group-entry-image-clear').onclick = () => {
+        window.pendingGroupImage = null;
+        document.getElementById('group-entry-image-preview').innerHTML = '<i class="fa-regular fa-image text-xl"></i>';
+        document.getElementById('group-entry-image-input').value = '';
+      };
+    };
+
+    window.deleteGroupEntry = async function(entryId) {
+      const group = selectedGroup();
+      if (!group || !confirm('この登録内容を削除しますか？')) return;
+      group.entries = (group.entries || []).filter(e => e.id !== entryId);
+      if (await saveWeeklyGroups()) renderGroupView();
+    };
 
     function escapeHtml(str) {
       if (!str) return '';
