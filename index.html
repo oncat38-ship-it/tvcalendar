@@ -21,6 +21,10 @@
     }
   </script>
   <style>
+    html, body { width: 100%; height: 100%; overflow: hidden; }
+    #app-container { height: 100vh; height: 100dvh; width: 100%; }
+    #app-container > header { flex: 0 0 auto; }
+    #app-container > main { min-height: 0; }
     body {
       background-color: #f1edf4;
       background-image: radial-gradient(ellipse at 10% 0%, rgba(251,207,232,.28), transparent 42%), radial-gradient(ellipse at 95% 100%, rgba(196,181,253,.22), transparent 45%);
@@ -95,9 +99,9 @@
   </div>
 
   <!-- MAIN APP CONTAINER -->
-  <div id="app-container" class="hidden h-screen flex flex-col">
+  <div id="app-container" class="hidden fixed inset-0 h-screen flex flex-col overflow-hidden">
     <!-- Header Section -->
-    <header class="bg-[#fbf8fc]/80 backdrop-blur-md border-b border-pink-100 shrink-0 z-30">
+    <header class="relative bg-[#fbf8fc]/95 backdrop-blur-md border-b border-pink-100 shrink-0 z-40">
       <div class="max-w-5xl mx-auto px-3">
         <div class="flex items-center justify-between h-12">
           <!-- Logo / Title -->
@@ -142,7 +146,7 @@
     </header>
 
     <!-- Main Content -->
-    <main class="flex-1 max-w-5xl w-full mx-auto px-3 py-2 flex flex-col min-h-0">
+    <main class="flex-1 max-w-5xl w-full mx-auto px-3 py-2 flex flex-col min-h-0 overflow-hidden">
 
       <!-- CALENDAR VIEW -->
       <section id="calendar-view" class="flex-1 flex flex-col min-h-0 space-y-1.5">
@@ -211,8 +215,8 @@
       <section id="group-view" class="flex-1 flex flex-col min-h-0 space-y-2 hidden">
         <div class="flex items-center justify-between gap-2 shrink-0">
           <div>
-            <h2 class="text-sm font-bold text-slate-700">グループ週間予定</h2>
-            <p class="text-[10px] text-slate-400">人物・番組などを自由なグループで整理できます</p>
+            <h2 class="text-sm font-bold text-slate-700">グループ予定一覧</h2>
+            <p class="text-[10px] text-slate-400">曜日ごとの予定をひと目で確認できます</p>
           </div>
           <button onclick="openGroupModal()" class="shrink-0 bg-gradient-to-r from-pink-400 to-purple-400 text-white px-3 py-2 rounded-xl text-[11px] font-bold shadow-sm">
             <i class="fa-solid fa-plus mr-1"></i>グループ作成
@@ -236,7 +240,7 @@
             <div><h4 class="font-bold text-slate-700 text-xs">予定一覧</h4><p class="text-[9px] text-slate-400">曜日をまとめて、曜日・時間順に表示します</p></div>
             <button onclick="openGroupEntryModal()" class="bg-pink-50 border border-pink-200 text-pink-600 px-3 py-1.5 rounded-lg text-[10px] font-bold"><i class="fa-solid fa-plus mr-1"></i>予定を追加</button>
           </div>
-          <div id="group-entry-list" class="flex-1 min-h-0 overflow-y-auto custom-scrollbar space-y-2 pb-2"></div>
+          <div id="group-entry-list" class="flex-1 min-h-0 overflow-y-auto custom-scrollbar pb-2"></div>
         </div>
       </section>
 
@@ -1235,7 +1239,7 @@
           const open = document.createElement('button');
           open.className = 'w-8 h-8 rounded-lg bg-pink-50 text-pink-500 shrink-0';
           open.innerHTML = '<i class="fa-solid fa-chevron-right"></i>';
-          open.title = '週間予定を開く';
+          open.title = 'グループ予定を開く';
           open.onclick = () => { window.selectedGroupId = g.id; renderGroupView(); };
           card.append(avatar, info, open);
           card.addEventListener('click', e => { if (e.target !== open && !open.contains(e.target)) { window.selectedGroupId = g.id; renderGroupView(); } });
@@ -1249,62 +1253,81 @@
       document.getElementById('group-detail-name').textContent = group.name;
       document.getElementById('group-detail-description').textContent = group.description || '説明はありません';
 
+      // 7曜日を縦に並べ、右側に小さな予定タグを置く簡易表
       const entryList = document.getElementById('group-entry-list');
       entryList.innerHTML = '';
-      const entries = (group.entries || []).slice().sort((a,b) => Number(a.day) - Number(b.day) || (a.time || '').localeCompare(b.time || ''));
-      // グループに紐づく番組予定は毎週・単発を問わず全件表示
-      const linkedSchedules = (window.schedules || []).filter(item => item.groupId === group.id)
-        .sort((a,b) => {
-          const dayA = a.type === 'weekly' ? Number(a.day) : (a.date ? new Date(`${a.date}T00:00:00`).getDay() : 7);
-          const dayB = b.type === 'weekly' ? Number(b.day) : (b.date ? new Date(`${b.date}T00:00:00`).getDay() : 7);
-          return dayA - dayB || (a.time || '').localeCompare(b.time || '');
-        });
-      if (!entries.length && !linkedSchedules.length) {
-        entryList.innerHTML = `<div class="bg-[#fbf8fc] border border-dashed border-pink-200 rounded-xl p-6 text-center text-[10px] text-slate-400">登録内容はまだありません。<br>グループに設定した番組予定も、この一覧に表示されます。</div>`;
-        return;
-      }
-      entries.forEach(entry => {
-        const card = document.createElement('div');
-        card.className = 'bg-[#fbf8fc] border border-pink-100 rounded-xl p-3 flex items-center gap-2.5 shadow-xs';
-        const image = document.createElement('div');
-        image.innerHTML = entry.image ? `<img src="${entry.image}" alt="" class="w-11 h-11 rounded-lg object-cover">` : `<div class="w-11 h-11 rounded-lg bg-purple-50 text-purple-400 flex items-center justify-center text-lg"><i class="${entry.kind === '番組' ? 'fa-solid fa-tv' : entry.kind === '人物' ? 'fa-regular fa-user' : 'fa-regular fa-bookmark'}"></i></div>`;
-        const info = document.createElement('div');
-        info.className = 'min-w-0 flex-1';
-        info.innerHTML = `<div class="flex items-center gap-1.5 mb-0.5"><span class="text-[8px] font-bold px-1.5 py-0.5 rounded bg-pink-50 text-pink-600">${groupDayNames[Number(entry.day)] || '曜日未設定'}</span><span class="text-[9px] font-bold text-pink-500">${escapeHtml(entry.time || '')}</span><span class="text-[8px] px-1.5 py-0.5 rounded bg-purple-50 text-purple-500">${escapeHtml(entry.kind || 'その他')}</span></div><p class="font-bold text-slate-700 text-xs break-words">${escapeHtml(entry.title)}</p><p class="text-[10px] text-slate-400 mt-0.5 break-words">${escapeHtml(entry.details || '')}</p>`;
-        const actions = document.createElement('div');
-        actions.className = 'flex flex-col gap-1 shrink-0';
-        const edit = document.createElement('button');
-        edit.className = 'w-7 h-7 rounded-md text-slate-400 hover:bg-pink-50 hover:text-pink-500';
-        edit.innerHTML = '<i class="fa-regular fa-pen-to-square"></i>';
-        edit.title = '編集';
-        edit.onclick = () => openGroupEntryModal(entry.id);
-        const del = document.createElement('button');
-        del.className = 'w-7 h-7 rounded-md text-slate-300 hover:bg-rose-50 hover:text-rose-500';
-        del.innerHTML = '<i class="fa-regular fa-trash-can"></i>';
-        del.title = '削除';
-        del.onclick = () => deleteGroupEntry(entry.id);
-        actions.append(edit, del);
-        card.append(image, info, actions);
-        entryList.appendChild(card);
+      const rows = groupDayNames.map((dayName, dayIndex) => {
+        const row = document.createElement('div');
+        row.className = 'grid grid-cols-[34px_minmax(0,1fr)] gap-2 items-start border-b border-pink-100/80 py-2 px-1 min-h-[48px]';
+        const dayCell = document.createElement('div');
+        const dayColor = dayIndex === 0 ? 'text-rose-500 bg-rose-50' : dayIndex === 6 ? 'text-sky-600 bg-sky-50' : 'text-slate-600 bg-slate-100';
+        dayCell.className = `w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold ${dayColor}`;
+        dayCell.textContent = dayName;
+        const itemsCell = document.createElement('div');
+        itemsCell.className = 'flex flex-wrap items-start gap-1.5 min-w-0';
+
+        const manualItems = (group.entries || []).filter(entry => Number(entry.day) === dayIndex).map(entry => ({
+          source: 'manual', id: entry.id, title: entry.title || '', time: entry.time || '', details: entry.details || '', kind: entry.kind || 'その他', image: entry.image || ''
+        }));
+        const scheduleItems = (window.schedules || []).filter(item => {
+          if (item.groupId !== group.id) return false;
+          if (item.type === 'weekly') return Number(item.day) === dayIndex;
+          if (item.type === 'once' && item.date) {
+            const d = new Date(`${item.date}T00:00:00`);
+            return !Number.isNaN(d.getTime()) && d.getDay() === dayIndex;
+          }
+          return false;
+        }).map(item => ({
+          source: 'schedule', id: item.id, title: item.title || '', time: item.time || '', details: item.cast || item.memo || '',
+          kind: item.type === 'weekly' ? '毎週' : (item.date ? `${Number(item.date.slice(5,7))}/${Number(item.date.slice(8,10))}` : '単発'), color: item.color || '#fce7f3'
+        }));
+        const dayItems = [...manualItems, ...scheduleItems].sort((a,b) => (a.time || '99:99').localeCompare(b.time || '99:99') || a.title.localeCompare(b.title, 'ja'));
+
+        if (!dayItems.length) {
+          const empty = document.createElement('span');
+          empty.className = 'text-[9px] text-slate-300 py-2';
+          empty.textContent = '予定なし';
+          itemsCell.appendChild(empty);
+        } else {
+          dayItems.forEach(item => {
+            const chip = document.createElement('button');
+            chip.type = 'button';
+            chip.className = 'max-w-full inline-flex items-center gap-1 rounded-md border px-2 py-1 text-left text-[9px] leading-tight shadow-xs active:scale-[0.98]';
+            if (item.source === 'schedule') {
+              chip.style.backgroundColor = item.color;
+              chip.style.borderColor = '#fbcfe8';
+              chip.style.color = getReadableTextColor(item.color);
+              chip.title = `${item.kind} ${item.time} ${item.title}`;
+              chip.onclick = () => editSchedule(item.id);
+            } else {
+              chip.style.backgroundColor = '#f5f3ff';
+              chip.style.borderColor = '#ddd6fe';
+              chip.style.color = '#6d5b91';
+              chip.title = `${item.kind} ${item.time} ${item.title}`;
+              chip.onclick = () => openGroupEntryModal(item.id);
+            }
+            const time = document.createElement('span');
+            time.className = 'font-bold whitespace-nowrap opacity-80';
+            time.textContent = item.time || '—';
+            const title = document.createElement('span');
+            title.className = 'font-bold min-w-0 break-all';
+            title.textContent = item.title;
+            chip.append(time, title);
+            itemsCell.appendChild(chip);
+          });
+        }
+        row.append(dayCell, itemsCell);
+        return row;
       });
-      linkedSchedules.forEach(item => {
-        const card = document.createElement('div');
-        card.className = 'bg-white border border-pink-200 rounded-xl p-3 flex items-center gap-2.5 shadow-xs';
-        const image = document.createElement('div');
-        image.innerHTML = `<div class="w-11 h-11 rounded-lg flex items-center justify-center text-lg" style="background:${escapeHtml(item.color || '#fce7f3')};color:${getReadableTextColor(item.color || '#f472b6')}"><i class="fa-solid fa-tv"></i></div>`;
-        const info = document.createElement('div');
-        info.className = 'min-w-0 flex-1';
-        const scheduleKind = item.type === 'weekly' ? '毎週' : '日付指定';
-        const scheduleDay = item.type === 'weekly' ? `${groupDayNames[Number(item.day)]}曜日` : (item.date || '日付未設定');
-        info.innerHTML = `<div class="flex items-center gap-1.5 mb-0.5 flex-wrap"><span class="text-[8px] font-bold px-1.5 py-0.5 rounded bg-pink-50 text-pink-600">${escapeHtml(scheduleDay)}</span><span class="text-[9px] font-bold text-pink-500">${escapeHtml(item.time || '')}</span><span class="text-[8px] px-1.5 py-0.5 rounded bg-pink-50 text-pink-600">番組予定</span><span class="text-[8px] text-slate-400">${scheduleKind}</span></div><p class="font-bold text-slate-700 text-xs break-words">${escapeHtml(item.title || '')}</p><p class="text-[10px] text-slate-400 mt-0.5 break-words">${escapeHtml(item.cast || item.memo || '')}</p>`;
-        const edit = document.createElement('button');
-        edit.className = 'w-7 h-7 rounded-md text-slate-400 hover:bg-pink-50 hover:text-pink-500 shrink-0';
-        edit.innerHTML = '<i class="fa-regular fa-pen-to-square"></i>';
-        edit.title = '番組予定を編集';
-        edit.onclick = () => editSchedule(item.id);
-        card.append(image, info, edit);
-        entryList.appendChild(card);
-      });
+
+      const table = document.createElement('div');
+      table.className = 'bg-[#fbf8fc] border border-pink-100 rounded-xl px-2 shadow-xs';
+      rows.forEach(row => table.appendChild(row));
+      entryList.appendChild(table);
+      const hint = document.createElement('p');
+      hint.className = 'text-[9px] text-slate-400 px-1 pt-2';
+      hint.textContent = '番組予定・登録内容のタグを押すと編集できます。単発番組は放送日の曜日に表示されます。';
+      entryList.appendChild(hint);
     }
 
     window.closeGroupDetail = function() { window.selectedGroupId = null; renderGroupView(); };
