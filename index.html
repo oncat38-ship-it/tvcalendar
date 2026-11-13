@@ -232,11 +232,8 @@
               <button onclick="deleteCurrentGroup()" title="グループ削除" class="w-8 h-8 rounded-lg border border-rose-100 text-rose-400"><i class="fa-regular fa-trash-can"></i></button>
             </div>
           </div>
-          <div class="bg-[#fbf8fc] rounded-xl border border-pink-100 p-2 shrink-0">
-            <div class="grid grid-cols-7 gap-1" id="group-weekdays"></div>
-          </div>
           <div class="flex items-center justify-between shrink-0 px-1">
-            <div><h4 id="group-selected-day" class="font-bold text-slate-700 text-xs"></h4><p class="text-[9px] text-slate-400">この曜日の登録内容</p></div>
+            <div><h4 class="font-bold text-slate-700 text-xs">予定一覧</h4><p class="text-[9px] text-slate-400">曜日をまとめて、曜日・時間順に表示します</p></div>
             <button onclick="openGroupEntryModal()" class="bg-pink-50 border border-pink-200 text-pink-600 px-3 py-1.5 rounded-lg text-[10px] font-bold"><i class="fa-solid fa-plus mr-1"></i>予定を追加</button>
           </div>
           <div id="group-entry-list" class="flex-1 min-h-0 overflow-y-auto custom-scrollbar space-y-2 pb-2"></div>
@@ -578,7 +575,8 @@
         await setDoc(userDocRef, {
           schedules: window.schedules,
           talents: window.registeredTalents,
-          customTags: window.customTags
+          customTags: window.customTags,
+          weeklyGroups: window.weeklyGroups
         });
       } catch (err) {
         console.error(err);
@@ -1251,30 +1249,18 @@
       document.getElementById('group-detail-name').textContent = group.name;
       document.getElementById('group-detail-description').textContent = group.description || '説明はありません';
 
-      const days = document.getElementById('group-weekdays');
-      days.innerHTML = '';
-      groupDayNames.forEach((name, day) => {
-        const btn = document.createElement('button');
-        const active = window.selectedGroupDay === day;
-        btn.className = `rounded-lg py-2 text-xs font-bold transition ${active ? 'bg-pink-400 text-white shadow-sm' : 'bg-pink-50/60 text-slate-500 hover:bg-pink-100'}`;
-        btn.textContent = name;
-        btn.onclick = () => { window.selectedGroupDay = day; renderGroupView(); };
-        days.appendChild(btn);
-      });
-      document.getElementById('group-selected-day').textContent = `${groupDayNames[window.selectedGroupDay]}曜日`;
-
       const entryList = document.getElementById('group-entry-list');
       entryList.innerHTML = '';
-      const entries = (group.entries || []).filter(e => Number(e.day) === window.selectedGroupDay).sort((a,b) => (a.time || '').localeCompare(b.time || ''));
-      // 番組編集画面でこのグループを選択した通常予定も、該当曜日のグループタグとして表示する
-      const linkedSchedules = (window.schedules || []).filter(item => {
-        if (item.groupId !== group.id) return false;
-        if (item.type === 'weekly') return Number(item.day) === window.selectedGroupDay;
-        if (item.type === 'once' && item.date) return new Date(`${item.date}T00:00:00`).getDay() === window.selectedGroupDay;
-        return false;
-      }).sort((a,b) => (a.time || '').localeCompare(b.time || ''));
+      const entries = (group.entries || []).slice().sort((a,b) => Number(a.day) - Number(b.day) || (a.time || '').localeCompare(b.time || ''));
+      // グループに紐づく番組予定は毎週・単発を問わず全件表示
+      const linkedSchedules = (window.schedules || []).filter(item => item.groupId === group.id)
+        .sort((a,b) => {
+          const dayA = a.type === 'weekly' ? Number(a.day) : (a.date ? new Date(`${a.date}T00:00:00`).getDay() : 7);
+          const dayB = b.type === 'weekly' ? Number(b.day) : (b.date ? new Date(`${b.date}T00:00:00`).getDay() : 7);
+          return dayA - dayB || (a.time || '').localeCompare(b.time || '');
+        });
       if (!entries.length && !linkedSchedules.length) {
-        entryList.innerHTML = `<div class="bg-[#fbf8fc] border border-dashed border-pink-200 rounded-xl p-6 text-center text-[10px] text-slate-400">この曜日の登録内容はありません。<br>番組編集画面でこのグループを選択した予定も、ここに表示されます。</div>`;
+        entryList.innerHTML = `<div class="bg-[#fbf8fc] border border-dashed border-pink-200 rounded-xl p-6 text-center text-[10px] text-slate-400">登録内容はまだありません。<br>グループに設定した番組予定も、この一覧に表示されます。</div>`;
         return;
       }
       entries.forEach(entry => {
@@ -1284,7 +1270,7 @@
         image.innerHTML = entry.image ? `<img src="${entry.image}" alt="" class="w-11 h-11 rounded-lg object-cover">` : `<div class="w-11 h-11 rounded-lg bg-purple-50 text-purple-400 flex items-center justify-center text-lg"><i class="${entry.kind === '番組' ? 'fa-solid fa-tv' : entry.kind === '人物' ? 'fa-regular fa-user' : 'fa-regular fa-bookmark'}"></i></div>`;
         const info = document.createElement('div');
         info.className = 'min-w-0 flex-1';
-        info.innerHTML = `<div class="flex items-center gap-1.5 mb-0.5"><span class="text-[9px] font-bold text-pink-500">${escapeHtml(entry.time || '')}</span><span class="text-[8px] px-1.5 py-0.5 rounded bg-purple-50 text-purple-500">${escapeHtml(entry.kind || 'その他')}</span></div><p class="font-bold text-slate-700 text-xs break-words">${escapeHtml(entry.title)}</p><p class="text-[10px] text-slate-400 mt-0.5 break-words">${escapeHtml(entry.details || '')}</p>`;
+        info.innerHTML = `<div class="flex items-center gap-1.5 mb-0.5"><span class="text-[8px] font-bold px-1.5 py-0.5 rounded bg-pink-50 text-pink-600">${groupDayNames[Number(entry.day)] || '曜日未設定'}</span><span class="text-[9px] font-bold text-pink-500">${escapeHtml(entry.time || '')}</span><span class="text-[8px] px-1.5 py-0.5 rounded bg-purple-50 text-purple-500">${escapeHtml(entry.kind || 'その他')}</span></div><p class="font-bold text-slate-700 text-xs break-words">${escapeHtml(entry.title)}</p><p class="text-[10px] text-slate-400 mt-0.5 break-words">${escapeHtml(entry.details || '')}</p>`;
         const actions = document.createElement('div');
         actions.className = 'flex flex-col gap-1 shrink-0';
         const edit = document.createElement('button');
@@ -1309,7 +1295,8 @@
         const info = document.createElement('div');
         info.className = 'min-w-0 flex-1';
         const scheduleKind = item.type === 'weekly' ? '毎週' : '日付指定';
-        info.innerHTML = `<div class="flex items-center gap-1.5 mb-0.5"><span class="text-[9px] font-bold text-pink-500">${escapeHtml(item.time || '')}</span><span class="text-[8px] px-1.5 py-0.5 rounded bg-pink-50 text-pink-600">番組予定</span><span class="text-[8px] text-slate-400">${scheduleKind}</span></div><p class="font-bold text-slate-700 text-xs break-words">${escapeHtml(item.title || '')}</p><p class="text-[10px] text-slate-400 mt-0.5 break-words">${escapeHtml(item.cast || item.memo || '')}</p>`;
+        const scheduleDay = item.type === 'weekly' ? `${groupDayNames[Number(item.day)]}曜日` : (item.date || '日付未設定');
+        info.innerHTML = `<div class="flex items-center gap-1.5 mb-0.5 flex-wrap"><span class="text-[8px] font-bold px-1.5 py-0.5 rounded bg-pink-50 text-pink-600">${escapeHtml(scheduleDay)}</span><span class="text-[9px] font-bold text-pink-500">${escapeHtml(item.time || '')}</span><span class="text-[8px] px-1.5 py-0.5 rounded bg-pink-50 text-pink-600">番組予定</span><span class="text-[8px] text-slate-400">${scheduleKind}</span></div><p class="font-bold text-slate-700 text-xs break-words">${escapeHtml(item.title || '')}</p><p class="text-[10px] text-slate-400 mt-0.5 break-words">${escapeHtml(item.cast || item.memo || '')}</p>`;
         const edit = document.createElement('button');
         edit.className = 'w-7 h-7 rounded-md text-slate-400 hover:bg-pink-50 hover:text-pink-500 shrink-0';
         edit.innerHTML = '<i class="fa-regular fa-pen-to-square"></i>';
@@ -1415,7 +1402,7 @@
       const body = `
         <div><label class="block text-[10px] font-bold text-slate-500 mb-1">種類</label><select id="group-entry-kind" class="w-full bg-pink-50/40 border border-pink-200 rounded-lg px-3 py-2 text-xs"><option ${existing?.kind === '人物' ? 'selected' : ''}>人物</option><option ${existing?.kind === '番組' ? 'selected' : ''}>番組</option><option ${existing?.kind === 'その他' || !existing ? 'selected' : ''}>その他</option></select></div>
         <div><label class="block text-[10px] font-bold text-slate-500 mb-1">名前・内容 <span class="text-rose-400">*</span></label><input id="group-entry-title" maxlength="60" value="${escapeHtml(existing?.title || '')}" placeholder="人物名・番組名など" class="w-full bg-pink-50/40 border border-pink-200 rounded-lg px-3 py-2 text-xs outline-none"></div>
-        <div class="grid grid-cols-2 gap-2"><div><label class="block text-[10px] font-bold text-slate-500 mb-1">曜日</label><select id="group-entry-day" class="w-full bg-pink-50/40 border border-pink-200 rounded-lg px-2 py-2 text-xs">${groupDayNames.map((d,i)=>`<option value="${i}" ${Number(existing?.day ?? window.selectedGroupDay) === i ? 'selected' : ''}>${d}曜日</option>`).join('')}</select></div><div><label class="block text-[10px] font-bold text-slate-500 mb-1">時間（任意）</label><input id="group-entry-time" type="time" value="${escapeHtml(existing?.time || '')}" class="w-full bg-pink-50/40 border border-pink-200 rounded-lg px-2 py-2 text-xs"></div></div>
+        <div class="grid grid-cols-2 gap-2"><div><label class="block text-[10px] font-bold text-slate-500 mb-1">曜日</label><select id="group-entry-day" class="w-full bg-pink-50/40 border border-pink-200 rounded-lg px-2 py-2 text-xs">${groupDayNames.map((d,i)=>`<option value="${i}" ${Number(existing?.day ?? new Date().getDay()) === i ? 'selected' : ''}>${d}曜日</option>`).join('')}</select></div><div><label class="block text-[10px] font-bold text-slate-500 mb-1">時間（任意）</label><input id="group-entry-time" type="time" value="${escapeHtml(existing?.time || '')}" class="w-full bg-pink-50/40 border border-pink-200 rounded-lg px-2 py-2 text-xs"></div></div>
         <div><label class="block text-[10px] font-bold text-slate-500 mb-1">補足情報（任意）</label><textarea id="group-entry-details" maxlength="240" rows="2" placeholder="出演者、内容、メモなど" class="w-full bg-pink-50/40 border border-pink-200 rounded-lg px-3 py-2 text-xs outline-none">${escapeHtml(existing?.details || '')}</textarea></div>
         <div><label class="block text-[10px] font-bold text-slate-500 mb-1">画像・アイコン（任意）</label><div class="flex items-center gap-3"><div id="group-entry-image-preview" class="w-14 h-14 rounded-xl bg-pink-50 flex items-center justify-center text-pink-300 overflow-hidden">${existing?.image ? `<img src="${existing.image}" class="w-full h-full object-cover" alt="">` : '<i class="fa-regular fa-image text-xl"></i>'}</div><div class="min-w-0 flex-1"><input id="group-entry-image-input" type="file" accept="image/*" class="w-full text-[10px]"><p class="text-[9px] text-slate-400 mt-1">人物の顔や番組マスコットなどを設定できます。</p><button type="button" id="group-entry-image-clear" class="text-[9px] text-rose-400 mt-1">画像を外す</button></div></div></div>`;
       openGroupEditor(existing ? '登録内容を編集' : '登録内容を追加', body, async () => {
