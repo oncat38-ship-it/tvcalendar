@@ -381,6 +381,14 @@
           <input type="text" id="input-memo" placeholder="局名、録画メモなど" class="w-full bg-pink-50/30 border border-pink-200/80 rounded-lg px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-pink-400 outline-none">
         </div>
 
+        <div>
+          <label class="block text-[10px] font-bold text-slate-500 mb-0.5">登録グループ（任意）</label>
+          <select id="input-group" class="w-full bg-pink-50/30 border border-pink-200/80 rounded-lg px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-pink-400 outline-none">
+            <option value="">グループに登録しない</option>
+          </select>
+          <p class="text-[9px] text-slate-400 mt-1">作成済みのグループから選択できます。</p>
+        </div>
+
         <!-- カラータグ選択・管理セクション -->
         <div class="bg-pink-50/30 p-2.5 rounded-xl border border-pink-100 space-y-2">
           <div class="flex justify-between items-center">
@@ -611,9 +619,20 @@
       document.getElementById('end-date-wrapper').classList.toggle('hidden');
     };
 
+    function renderScheduleGroupOptions(selectedId = '') {
+      const select = document.getElementById('input-group');
+      if (!select) return;
+      const groups = Array.isArray(window.weeklyGroups) ? window.weeklyGroups : [];
+      select.innerHTML = '<option value="">グループに登録しない</option>' + groups.map(group =>
+        `<option value="${escapeHtml(group.id)}">${escapeHtml(group.name || '名称未設定')}</option>`
+      ).join('');
+      select.value = groups.some(group => group.id === selectedId) ? selectedId : '';
+    }
+
     window.openModal = function(presetDate = null) {
       document.getElementById('schedule-form').reset();
       document.getElementById('entry-id').value = '';
+      renderScheduleGroupOptions('');
       document.getElementById('modal-title').textContent = '新しい番組予定を追加';
       document.getElementById('end-date-wrapper').classList.add('hidden');
       
@@ -818,6 +837,7 @@
 
       window.pendingDayAfterEdit = window.activeDayDetail || window.pendingDayAfterEdit;
       document.getElementById('entry-id').value = item.id;
+      renderScheduleGroupOptions(item.groupId || '');
       document.getElementById('modal-title').textContent = '番組予定を編集';
 
       document.querySelector(`input[name="entry-type"][value="${item.type}"]`).checked = true;
@@ -880,6 +900,7 @@
         title: document.getElementById('input-title').value,
         cast: document.getElementById('input-cast').value,
         memo: document.getElementById('input-memo').value,
+        groupId: document.getElementById('input-group').value || null,
         day: type === 'weekly' ? document.getElementById('input-day').value : null,
         endDate: type === 'weekly' ? (document.getElementById('input-end-date').value || null) : null,
         date: type === 'once' ? document.getElementById('input-date').value : null,
