@@ -382,6 +382,18 @@
           <input type="text" id="input-memo" placeholder="局名、録画メモなど" class="w-full bg-pink-50/30 border border-pink-200/80 rounded-lg px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-pink-400 outline-none">
         </div>
 
+        <div class="bg-pink-50/30 p-2.5 rounded-xl border border-pink-100">
+          <label class="block text-[10px] font-bold text-slate-600 mb-1.5">番組イラスト・画像</label>
+          <div class="flex items-center gap-2.5">
+            <div id="schedule-image-preview" class="w-16 h-16 rounded-lg bg-white border border-pink-100 flex items-center justify-center text-pink-300 overflow-hidden shrink-0"><i class="fa-regular fa-image text-xl"></i></div>
+            <div class="min-w-0 flex-1">
+              <input id="schedule-image-input" type="file" accept="image/*" class="w-full text-[10px]" onchange="handleScheduleImageChange(this)">
+              <p class="text-[9px] text-slate-400 mt-1">写真フォルダから選べます。画像は自動で縮小して保存します。</p>
+              <button type="button" onclick="clearScheduleImage()" class="text-[9px] text-rose-400 mt-1">画像を外す</button>
+            </div>
+          </div>
+        </div>
+
         <div>
           <label class="block text-[10px] font-bold text-slate-500 mb-0.5">登録グループ（任意）</label>
           <select id="input-group" class="w-full bg-pink-50/30 border border-pink-200/80 rounded-lg px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-pink-400 outline-none">
@@ -576,12 +588,18 @@
       if (!window.currentUser) return;
       try {
         const userDocRef = doc(db, 'users', window.currentUser.uid);
-        await setDoc(userDocRef, {
+        const payload = {
           schedules: window.schedules,
           talents: window.registeredTalents,
           customTags: window.customTags,
           weeklyGroups: window.weeklyGroups
-        });
+        };
+        const byteSize = new Blob([JSON.stringify(payload)]).size;
+        if (byteSize > 850 * 1024) {
+          alert('画像を含む登録データが大きくなっています。画像を減らすか、より小さい画像を選んでください。今回は保存されていません。');
+          return;
+        }
+        await setDoc(userDocRef, payload);
       } catch (err) {
         console.error(err);
       }
@@ -591,6 +609,7 @@
       saveUserData();
       if (window.currentView === 'calendar') renderCalendar();
       else if (window.currentView === 'table') renderTable();
+      else if (window.currentView === 'groups') renderGroupView();
       if (window.activeDayDetail) renderDayDetails(window.activeDayDetail);
     };
 
@@ -631,9 +650,37 @@
       select.value = groups.some(group => group.id === selectedId) ? selectedId : '';
     }
 
+    window.pendingScheduleImage = null;
+    function renderScheduleImagePreview(image) {
+      const preview = document.getElementById('schedule-image-preview');
+      if (!preview) return;
+      preview.innerHTML = image ? `<img src="${image}" alt="番組画像" class="w-full h-full object-cover">` : '<i class="fa-regular fa-image text-xl"></i>';
+    }
+    window.handleScheduleImageChange = async function(input) {
+      const file = input.files && input.files[0];
+      if (!file) return;
+      try {
+        window.pendingScheduleImage = await readAndCompressGroupImage(file);
+        renderScheduleImagePreview(window.pendingScheduleImage);
+      } catch (err) {
+        alert(err.message || '画像を読み込めませんでした');
+        input.value = '';
+      }
+    };
+    window.clearScheduleImage = function() {
+      window.pendingScheduleImage = null;
+      const input = document.getElementById('schedule-image-input');
+      if (input) input.value = '';
+      renderScheduleImagePreview(null);
+    };
+
     window.openModal = function(presetDate = null) {
       document.getElementById('schedule-form').reset();
       document.getElementById('entry-id').value = '';
+      window.pendingScheduleImage = null;
+      const scheduleImageInput = document.getElementById('schedule-image-input');
+      if (scheduleImageInput) scheduleImageInput.value = '';
+      renderScheduleImagePreview(null);
       renderScheduleGroupOptions('');
       document.getElementById('modal-title').textContent = '新しい番組予定を追加';
       document.getElementById('end-date-wrapper').classList.add('hidden');
@@ -861,6 +908,10 @@
       document.getElementById('input-title').value = item.title;
       document.getElementById('input-cast').value = item.cast || '';
       document.getElementById('input-memo').value = item.memo || '';
+      window.pendingScheduleImage = item.image || null;
+      const scheduleImageInput = document.getElementById('schedule-image-input');
+      if (scheduleImageInput) scheduleImageInput.value = '';
+      renderScheduleImagePreview(window.pendingScheduleImage);
 
       document.getElementById('input-custom-color').value = item.color || '#f472b6';
       document.getElementById('input-color-name').value = item.colorName || '通常';
@@ -902,6 +953,7 @@
         title: document.getElementById('input-title').value,
         cast: document.getElementById('input-cast').value,
         memo: document.getElementById('input-memo').value,
+        image: window.pendingScheduleImage || null,
         groupId: document.getElementById('input-group').value || null,
         day: type === 'weekly' ? document.getElementById('input-day').value : null,
         endDate: type === 'weekly' ? (document.getElementById('input-end-date').value || null) : null,
@@ -1278,7 +1330,7 @@
           }
           return false;
         }).map(item => ({
-          source: 'schedule', id: item.id, title: item.title || '', time: item.time || '', details: item.cast || item.memo || '',
+          source: 'schedule', id: item.id, title: item.title || '', time: item.time || '', details: item.cast || item.memo || '', image: item.image || '',
           kind: item.type === 'weekly' ? '毎週' : (item.date ? `${Number(item.date.slice(5,7))}/${Number(item.date.slice(8,10))}` : '単発'), color: item.color || '#fce7f3'
         }));
         const dayItems = [...manualItems, ...scheduleItems].sort((a,b) => (a.time || '99:99').localeCompare(b.time || '99:99') || a.title.localeCompare(b.title, 'ja'));
@@ -1292,27 +1344,31 @@
           dayItems.forEach(item => {
             const chip = document.createElement('button');
             chip.type = 'button';
-            chip.className = 'max-w-full inline-flex items-center gap-1 rounded-md border px-2 py-1 text-left text-[9px] leading-tight shadow-xs active:scale-[0.98]';
+            chip.className = 'w-[76px] shrink-0 flex flex-col items-center gap-1 rounded-lg border p-1 text-center shadow-xs active:scale-[0.98]';
             if (item.source === 'schedule') {
-              chip.style.backgroundColor = item.color;
+              chip.style.backgroundColor = '#fff';
               chip.style.borderColor = '#fbcfe8';
-              chip.style.color = getReadableTextColor(item.color);
+              chip.style.color = '#55465b';
               chip.title = `${item.kind} ${item.time} ${item.title}`;
               chip.onclick = () => editSchedule(item.id);
             } else {
-              chip.style.backgroundColor = '#f5f3ff';
+              chip.style.backgroundColor = '#fff';
               chip.style.borderColor = '#ddd6fe';
               chip.style.color = '#6d5b91';
               chip.title = `${item.kind} ${item.time} ${item.title}`;
               chip.onclick = () => openGroupEntryModal(item.id);
             }
-            const time = document.createElement('span');
-            time.className = 'font-bold whitespace-nowrap opacity-80';
-            time.textContent = item.time || '—';
+            const imageBox = document.createElement('div');
+            imageBox.className = 'w-full aspect-square rounded-md overflow-hidden bg-gradient-to-br from-pink-50 to-purple-50 flex items-center justify-center text-pink-300';
+            if (item.image) { const img = document.createElement('img'); img.src = item.image; img.alt = ''; img.className = 'w-full h-full object-cover'; imageBox.appendChild(img); }
+            else { imageBox.innerHTML = item.source === 'schedule' ? '<i class="fa-solid fa-tv text-lg"></i>' : '<i class="fa-regular fa-image text-lg"></i>'; }
             const title = document.createElement('span');
-            title.className = 'font-bold min-w-0 break-all';
+            title.className = 'w-full text-[9px] font-bold leading-tight line-clamp-2 break-words';
             title.textContent = item.title;
-            chip.append(time, title);
+            const time = document.createElement('span');
+            time.className = 'w-full text-[8px] text-slate-400 leading-none';
+            time.textContent = item.time || '時間未設定';
+            chip.append(imageBox, title, time);
             itemsCell.appendChild(chip);
           });
         }
@@ -1326,7 +1382,7 @@
       entryList.appendChild(table);
       const hint = document.createElement('p');
       hint.className = 'text-[9px] text-slate-400 px-1 pt-2';
-      hint.textContent = '番組予定・登録内容のタグを押すと編集できます。単発番組は放送日の曜日に表示されます。';
+      hint.textContent = '画像と小さなタイトルで番組を見分けられます。カードを押すと編集できます。単発番組は放送日の曜日に表示されます。';
       entryList.appendChild(hint);
     }
 
