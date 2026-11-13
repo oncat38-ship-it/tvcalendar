@@ -1104,9 +1104,11 @@
           badge.style.minHeight = '21px';
           badge.onclick = (event) => { event.stopPropagation(); editSchedule(item.id); };
 
+          const assignedGroup = (window.weeklyGroups || []).find(g => g.id === item.groupId);
           badge.innerHTML = `
-            <div class="truncate mr-0.5">
+            <div class="min-w-0 truncate mr-0.5">
               <span class="font-extrabold whitespace-nowrap">${escapeHtml(item.time || '')}</span><span class="font-semibold">${escapeHtml(item.title || '')}</span>
+              ${assignedGroup ? `<span class="inline-block ml-1 px-1 py-0.5 rounded bg-white/75 text-[8px] font-bold align-middle" style="color:${getReadableTextColor(item.color || '#f472b6')}">▣ ${escapeHtml(assignedGroup.name || 'グループ')}</span>` : ''}
             </div>
             <button onclick="toggleSkipDate('${item.id}', '${dateStr}', event)" title="休止" class="opacity-0 group-hover/badge:opacity-100 hover:bg-black/20 p-0.5 rounded text-[8px] shrink-0 transition">
               <i class="fa-solid fa-xmark"></i>
@@ -1229,7 +1231,9 @@
           avatar.innerHTML = groupAvatarHtml(g.image, '✦', 'w-12 h-12');
           const info = document.createElement('div');
           info.className = 'min-w-0 flex-1';
-          info.innerHTML = `<h3 class="font-bold text-slate-700 text-xs truncate">${escapeHtml(g.name)}</h3><p class="text-[10px] text-slate-400 mt-0.5 line-clamp-2">${escapeHtml(g.description || '説明はありません')}</p><p class="text-[9px] text-pink-400 mt-1">登録内容 ${Array.isArray(g.entries) ? g.entries.length : 0} 件</p>`;
+          const linkedCount = (window.schedules || []).filter(item => item.groupId === g.id).length;
+          const totalCount = (Array.isArray(g.entries) ? g.entries.length : 0) + linkedCount;
+          info.innerHTML = `<h3 class="font-bold text-slate-700 text-xs truncate">${escapeHtml(g.name)}</h3><p class="text-[10px] text-slate-400 mt-0.5 line-clamp-2">${escapeHtml(g.description || '説明はありません')}</p><p class="text-[9px] text-pink-400 mt-1">登録内容 ${totalCount} 件（番組予定 ${linkedCount} 件）</p>`;
           const open = document.createElement('button');
           open.className = 'w-8 h-8 rounded-lg bg-pink-50 text-pink-500 shrink-0';
           open.innerHTML = '<i class="fa-solid fa-chevron-right"></i>';
@@ -1262,8 +1266,15 @@
       const entryList = document.getElementById('group-entry-list');
       entryList.innerHTML = '';
       const entries = (group.entries || []).filter(e => Number(e.day) === window.selectedGroupDay).sort((a,b) => (a.time || '').localeCompare(b.time || ''));
-      if (!entries.length) {
-        entryList.innerHTML = `<div class="bg-[#fbf8fc] border border-dashed border-pink-200 rounded-xl p-6 text-center text-[10px] text-slate-400">この曜日の登録内容はありません。<br>「予定を追加」から登録できます。</div>`;
+      // 番組編集画面でこのグループを選択した通常予定も、該当曜日のグループタグとして表示する
+      const linkedSchedules = (window.schedules || []).filter(item => {
+        if (item.groupId !== group.id) return false;
+        if (item.type === 'weekly') return Number(item.day) === window.selectedGroupDay;
+        if (item.type === 'once' && item.date) return new Date(`${item.date}T00:00:00`).getDay() === window.selectedGroupDay;
+        return false;
+      }).sort((a,b) => (a.time || '').localeCompare(b.time || ''));
+      if (!entries.length && !linkedSchedules.length) {
+        entryList.innerHTML = `<div class="bg-[#fbf8fc] border border-dashed border-pink-200 rounded-xl p-6 text-center text-[10px] text-slate-400">この曜日の登録内容はありません。<br>番組編集画面でこのグループを選択した予定も、ここに表示されます。</div>`;
         return;
       }
       entries.forEach(entry => {
@@ -1288,6 +1299,23 @@
         del.onclick = () => deleteGroupEntry(entry.id);
         actions.append(edit, del);
         card.append(image, info, actions);
+        entryList.appendChild(card);
+      });
+      linkedSchedules.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'bg-white border border-pink-200 rounded-xl p-3 flex items-center gap-2.5 shadow-xs';
+        const image = document.createElement('div');
+        image.innerHTML = `<div class="w-11 h-11 rounded-lg flex items-center justify-center text-lg" style="background:${escapeHtml(item.color || '#fce7f3')};color:${getReadableTextColor(item.color || '#f472b6')}"><i class="fa-solid fa-tv"></i></div>`;
+        const info = document.createElement('div');
+        info.className = 'min-w-0 flex-1';
+        const scheduleKind = item.type === 'weekly' ? '毎週' : '日付指定';
+        info.innerHTML = `<div class="flex items-center gap-1.5 mb-0.5"><span class="text-[9px] font-bold text-pink-500">${escapeHtml(item.time || '')}</span><span class="text-[8px] px-1.5 py-0.5 rounded bg-pink-50 text-pink-600">番組予定</span><span class="text-[8px] text-slate-400">${scheduleKind}</span></div><p class="font-bold text-slate-700 text-xs break-words">${escapeHtml(item.title || '')}</p><p class="text-[10px] text-slate-400 mt-0.5 break-words">${escapeHtml(item.cast || item.memo || '')}</p>`;
+        const edit = document.createElement('button');
+        edit.className = 'w-7 h-7 rounded-md text-slate-400 hover:bg-pink-50 hover:text-pink-500 shrink-0';
+        edit.innerHTML = '<i class="fa-regular fa-pen-to-square"></i>';
+        edit.title = '番組予定を編集';
+        edit.onclick = () => editSchedule(item.id);
+        card.append(image, info, edit);
         entryList.appendChild(card);
       });
     }
