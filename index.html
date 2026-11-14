@@ -1161,7 +1161,7 @@
           const assignedGroup = (window.weeklyGroups || []).find(g => g.id === item.groupId);
           const showDayImage = eventIndex === 0 && item.image;
           badge.innerHTML = `
-            ${showDayImage ? `<img src="${item.image}" alt="" class="w-5 h-5 rounded object-cover shrink-0 border border-white/70">` : ''}
+            ${showDayImage ? `<img src="${item.image}" alt="" class="w-6 h-6 rounded object-cover shrink-0 border border-white/70">` : ''}
             <div class="min-w-0 truncate mr-0.5 flex-1">
               <span class="font-extrabold whitespace-nowrap">${escapeHtml(item.time || '')}</span><span class="font-semibold">${escapeHtml(item.title || '')}</span>
               ${assignedGroup ? `<span class="inline-block ml-1 px-1 py-0.5 rounded bg-white/75 text-[8px] font-bold align-middle" style="color:${getReadableTextColor(item.color || '#f472b6')}">▣ ${escapeHtml(assignedGroup.name || 'グループ')}</span>` : ''}
@@ -1312,7 +1312,7 @@
       entryList.innerHTML = '';
       const rows = groupDayNames.map((dayName, dayIndex) => {
         const row = document.createElement('div');
-        row.className = 'grid grid-cols-[26px_minmax(0,1fr)] gap-1.5 items-center border-b border-pink-100/80 py-1 px-0.5 min-h-[40px]';
+        row.className = 'grid grid-cols-[26px_minmax(0,1fr)] gap-1.5 items-center border-b border-pink-100/80 py-0.5 px-0.5 min-h-[44px]';
         const dayCell = document.createElement('div');
         const dayColor = dayIndex === 0 ? 'text-rose-500 bg-rose-50' : dayIndex === 6 ? 'text-sky-600 bg-sky-50' : 'text-slate-600 bg-slate-100';
         dayCell.className = `w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-bold ${dayColor}`;
@@ -1346,7 +1346,7 @@
           dayItems.forEach(item => {
             const chip = document.createElement('button');
             chip.type = 'button';
-            chip.className = 'w-[82px] h-[36px] shrink-0 flex flex-row items-center gap-1 rounded-md border px-1 py-0.5 text-left shadow-xs active:scale-[0.98] overflow-hidden';
+            chip.className = 'w-[94px] h-[42px] shrink-0 flex flex-row items-center gap-1 rounded-md border px-1 py-0.5 text-left shadow-xs active:scale-[0.98] overflow-hidden';
             if (item.source === 'schedule') {
               chip.style.backgroundColor = '#fff';
               chip.style.borderColor = '#fbcfe8';
@@ -1361,7 +1361,7 @@
               chip.onclick = () => openGroupEntryModal(item.id);
             }
             const imageBox = document.createElement('div');
-            imageBox.className = 'w-[30px] h-[30px] rounded overflow-hidden bg-gradient-to-br from-pink-50 to-purple-50 flex items-center justify-center text-pink-300 shrink-0';
+            imageBox.className = 'w-[36px] h-[36px] rounded overflow-hidden bg-gradient-to-br from-pink-50 to-purple-50 flex items-center justify-center text-pink-300 shrink-0';
             if (item.image) { const img = document.createElement('img'); img.src = item.image; img.alt = ''; img.className = 'w-full h-full object-cover'; imageBox.appendChild(img); }
             else { imageBox.innerHTML = item.source === 'schedule' ? '<i class="fa-solid fa-tv text-[11px]"></i>' : '<i class="fa-regular fa-image text-[11px]"></i>'; }
             const title = document.createElement('span');
