@@ -25,8 +25,9 @@
     #app-container { height: 100vh; height: 100dvh; width: 100%; }
     #app-container > header { flex: 0 0 auto; }
     #app-container > main { min-height: 0; }
+    :root { --app-bg-color: #f1edf4; }
     body {
-      background-color: #f1edf4;
+      background-color: var(--app-bg-color);
       background-image: radial-gradient(ellipse at 10% 0%, rgba(251,207,232,.28), transparent 42%), radial-gradient(ellipse at 95% 100%, rgba(196,181,253,.22), transparent 45%);
       color: #414451;
     }
@@ -245,6 +246,46 @@
       </section>
 
     </main>
+  </div>
+
+  <!-- 画面設定：邪魔になりにくい右下の固定ボタン -->
+  <button id="appearance-settings-fab" type="button" onclick="openAppearanceSettings()" title="表示・背景設定" aria-label="表示・背景設定" class="hidden fixed right-3 bottom-4 z-[45] w-11 h-11 rounded-full bg-white/95 border border-pink-200 text-pink-500 shadow-lg flex items-center justify-center">
+    <i class="fa-solid fa-sliders text-base"></i>
+  </button>
+
+  <div id="appearance-settings-backdrop" class="fixed inset-0 bg-slate-900/35 backdrop-blur-sm z-[90] flex items-center justify-center p-3 opacity-0 pointer-events-none transition-opacity duration-200">
+    <div class="bg-[#fbf8fc] rounded-2xl shadow-xl border border-pink-100 w-full max-w-md max-h-[88vh] overflow-y-auto custom-scrollbar">
+      <div class="px-4 py-3 border-b border-pink-100 flex items-center justify-between sticky top-0 bg-[#fbf8fc] z-10">
+        <div><h3 class="font-bold text-slate-700 text-sm">表示・背景設定</h3><p class="text-[10px] text-slate-400">カレンダーとグループを別々に調整できます</p></div>
+        <button type="button" onclick="closeAppearanceSettings()" class="w-8 h-8 rounded-full text-slate-400 hover:bg-pink-50"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="p-4 space-y-4">
+        <section class="space-y-2">
+          <h4 class="font-bold text-xs text-slate-700">カレンダー側の画像サイズ</h4>
+          <div class="grid grid-cols-2 gap-3">
+            <label class="text-[10px] text-slate-500">横幅 <span id="cal-width-value" class="font-bold text-pink-500"></span><input id="cal-width-setting" type="range" min="16" max="72" step="1" class="w-full mt-2" oninput="previewAppearanceSettings()"></label>
+            <label class="text-[10px] text-slate-500">高さ <span id="cal-height-value" class="font-bold text-pink-500"></span><input id="cal-height-setting" type="range" min="16" max="72" step="1" class="w-full mt-2" oninput="previewAppearanceSettings()"></label>
+          </div>
+        </section>
+        <section class="space-y-2 border-t border-pink-100 pt-3">
+          <h4 class="font-bold text-xs text-slate-700">グループ表側の画像サイズ</h4>
+          <div class="grid grid-cols-2 gap-3">
+            <label class="text-[10px] text-slate-500">横幅 <span id="group-width-value" class="font-bold text-pink-500"></span><input id="group-width-setting" type="range" min="32" max="112" step="1" class="w-full mt-2" oninput="previewAppearanceSettings()"></label>
+            <label class="text-[10px] text-slate-500">高さ <span id="group-height-value" class="font-bold text-pink-500"></span><input id="group-height-setting" type="range" min="32" max="112" step="1" class="w-full mt-2" oninput="previewAppearanceSettings()"></label>
+          </div>
+          <p class="text-[9px] text-slate-400">横幅と高さは別々に変更できます。画像は枠に合わせて縦横に引き伸ばして表示します。</p>
+        </section>
+        <section class="space-y-2 border-t border-pink-100 pt-3">
+          <h4 class="font-bold text-xs text-slate-700">背景カラー</h4>
+          <div class="flex items-center gap-3"><input id="app-bg-color-setting" type="color" value="#f1edf4" oninput="previewAppearanceSettings()"><span id="app-bg-color-value" class="text-[10px] text-slate-500">#f1edf4</span><button type="button" onclick="resetAppearanceBackground()" class="ml-auto text-[10px] text-pink-500 underline">デフォルトに戻す</button></div>
+          <p class="text-[9px] text-slate-400">現在の色味（薄いグレー寄りのラベンダー）を初期設定として保存しています。</p>
+        </section>
+      </div>
+      <div class="p-3 border-t border-pink-100 flex gap-2 sticky bottom-0 bg-[#fbf8fc]">
+        <button type="button" onclick="resetAppearanceAll()" class="px-3 py-2 rounded-lg border border-slate-200 text-slate-500 text-[10px]">全体を初期値に戻す</button>
+        <button type="button" onclick="saveAppearanceSettings()" class="flex-1 px-3 py-2 rounded-lg bg-gradient-to-r from-pink-400 to-purple-400 text-white font-bold text-xs">設定を保存</button>
+      </div>
+    </div>
   </div>
 
   <!-- DAY DETAILS MODAL -->
@@ -501,6 +542,7 @@
     window.selectedGroupId = null;
     window.selectedGroupDay = new Date().getDay();
     window.pendingGroupImage = null;
+    window.appearanceSettings = { calendarWidth: 24, calendarHeight: 24, groupWidth: 72, groupHeight: 72, backgroundColor: '#f1edf4' };
     window.customTags = [
       { id: 'tag-1', name: '通常', color: '#f472b6' },
       { id: 'tag-2', name: '推し', color: '#a78bfa' },
@@ -518,9 +560,11 @@
         window.currentUser = user;
         document.getElementById('auth-screen').classList.add('hidden');
         document.getElementById('app-container').classList.remove('hidden');
+        document.getElementById('appearance-settings-fab').classList.remove('hidden');
         await loadUserData();
       } else {
         window.currentUser = null;
+        document.getElementById('appearance-settings-fab').classList.add('hidden');
         document.getElementById('auth-screen').classList.remove('hidden');
         document.getElementById('app-container').classList.add('hidden');
       }
@@ -574,9 +618,11 @@
           window.registeredTalents = data.talents || [];
           window.customTags = data.customTags || window.customTags;
           window.weeklyGroups = Array.isArray(data.weeklyGroups) ? data.weeklyGroups : [];
+          window.appearanceSettings = { ...window.appearanceSettings, ...(data.appearanceSettings || {}) };
         } else {
           await saveUserData();
         }
+        applyAppearanceSettings();
         renderCalendar();
         renderTable();
       } catch (err) {
@@ -592,7 +638,8 @@
           schedules: window.schedules,
           talents: window.registeredTalents,
           customTags: window.customTags,
-          weeklyGroups: window.weeklyGroups
+          weeklyGroups: window.weeklyGroups,
+          appearanceSettings: window.appearanceSettings
         };
         const byteSize = new Blob([JSON.stringify(payload)]).size;
         if (byteSize > 850 * 1024) {
@@ -781,6 +828,7 @@
         tag.color = newColor;
         saveUserData();
         renderQuickColorPalette();
+        applyAppearanceSettings();
         renderCalendar();
         renderTable();
       }
@@ -1083,6 +1131,65 @@
       catch (err) { document.getElementById('bridge-message').textContent = `解除できませんでした：${err.message}`; }
     };
 
+    const DEFAULT_APPEARANCE_SETTINGS = { calendarWidth: 24, calendarHeight: 24, groupWidth: 72, groupHeight: 72, backgroundColor: '#f1edf4' };
+    function applyAppearanceSettings() {
+      const settings = { ...DEFAULT_APPEARANCE_SETTINGS, ...(window.appearanceSettings || {}) };
+      window.appearanceSettings = settings;
+      document.documentElement.style.setProperty('--app-bg-color', settings.backgroundColor);
+      const fab = document.getElementById('appearance-settings-fab');
+      if (fab) fab.classList.toggle('hidden', !window.currentUser);
+    }
+    window.openAppearanceSettings = function() {
+      const s = { ...DEFAULT_APPEARANCE_SETTINGS, ...(window.appearanceSettings || {}) };
+      document.getElementById('cal-width-setting').value = s.calendarWidth;
+      document.getElementById('cal-height-setting').value = s.calendarHeight;
+      document.getElementById('group-width-setting').value = s.groupWidth;
+      document.getElementById('group-height-setting').value = s.groupHeight;
+      document.getElementById('app-bg-color-setting').value = s.backgroundColor;
+      previewAppearanceSettings();
+      document.getElementById('appearance-settings-backdrop').classList.remove('opacity-0','pointer-events-none');
+    };
+    window.closeAppearanceSettings = function() {
+      document.getElementById('appearance-settings-backdrop').classList.add('opacity-0','pointer-events-none');
+      applyAppearanceSettings();
+      renderCalendar(); if (window.currentView === 'groups') renderGroupView();
+    };
+    window.previewAppearanceSettings = function() {
+      const get = id => Number(document.getElementById(id).value);
+      document.getElementById('cal-width-value').textContent = `${get('cal-width-setting')}px`;
+      document.getElementById('cal-height-value').textContent = `${get('cal-height-setting')}px`;
+      document.getElementById('group-width-value').textContent = `${get('group-width-setting')}px`;
+      document.getElementById('group-height-value').textContent = `${get('group-height-setting')}px`;
+      const color = document.getElementById('app-bg-color-setting').value;
+      document.getElementById('app-bg-color-value').textContent = color;
+      document.documentElement.style.setProperty('--app-bg-color', color);
+    };
+    window.resetAppearanceBackground = function() {
+      document.getElementById('app-bg-color-setting').value = DEFAULT_APPEARANCE_SETTINGS.backgroundColor;
+      previewAppearanceSettings();
+    };
+    window.resetAppearanceAll = function() {
+      document.getElementById('cal-width-setting').value = DEFAULT_APPEARANCE_SETTINGS.calendarWidth;
+      document.getElementById('cal-height-setting').value = DEFAULT_APPEARANCE_SETTINGS.calendarHeight;
+      document.getElementById('group-width-setting').value = DEFAULT_APPEARANCE_SETTINGS.groupWidth;
+      document.getElementById('group-height-setting').value = DEFAULT_APPEARANCE_SETTINGS.groupHeight;
+      document.getElementById('app-bg-color-setting').value = DEFAULT_APPEARANCE_SETTINGS.backgroundColor;
+      previewAppearanceSettings();
+    };
+    window.saveAppearanceSettings = async function() {
+      window.appearanceSettings = {
+        calendarWidth: Number(document.getElementById('cal-width-setting').value),
+        calendarHeight: Number(document.getElementById('cal-height-setting').value),
+        groupWidth: Number(document.getElementById('group-width-setting').value),
+        groupHeight: Number(document.getElementById('group-height-setting').value),
+        backgroundColor: document.getElementById('app-bg-color-setting').value
+      };
+      applyAppearanceSettings();
+      await saveUserData();
+      renderCalendar(); if (window.currentView === 'groups') renderGroupView();
+      closeAppearanceSettings();
+    };
+
     function renderCalendar() {
       const year = window.currentDate.getFullYear();
       const month = window.currentDate.getMonth();
@@ -1161,7 +1268,7 @@
           const assignedGroup = (window.weeklyGroups || []).find(g => g.id === item.groupId);
           const showDayImage = eventIndex === 0 && item.image;
           badge.innerHTML = `
-            ${showDayImage ? `<img src="${item.image}" alt="" class="w-6 h-6 rounded object-cover shrink-0 border border-white/70">` : ''}
+            ${showDayImage ? `<img src="${item.image}" alt="" style="width:${Number(window.appearanceSettings.calendarWidth || 24)}px;height:${Number(window.appearanceSettings.calendarHeight || 24)}px;object-fit:fill" class="rounded object-fill shrink-0 border border-white/70">` : ''}
             <div class="min-w-0 truncate mr-0.5 flex-1">
               <span class="font-extrabold whitespace-nowrap">${escapeHtml(item.time || '')}</span><span class="font-semibold">${escapeHtml(item.title || '')}</span>
               ${assignedGroup ? `<span class="inline-block ml-1 px-1 py-0.5 rounded bg-white/75 text-[8px] font-bold align-middle" style="color:${getReadableTextColor(item.color || '#f472b6')}">▣ ${escapeHtml(assignedGroup.name || 'グループ')}</span>` : ''}
@@ -1242,7 +1349,7 @@
       if (!window.currentUser) return;
       try {
         const userDocRef = doc(db, 'users', window.currentUser.uid);
-        const payload = { weeklyGroups: window.weeklyGroups };
+        const payload = { weeklyGroups: window.weeklyGroups, appearanceSettings: window.appearanceSettings };
         const byteSize = new Blob([JSON.stringify(payload)]).size;
         if (byteSize > 550 * 1024) {
           alert('画像や登録内容が多くなり、保存容量の上限に近づいています。画像を減らしてから再度保存してください。');
@@ -1312,10 +1419,10 @@
       entryList.innerHTML = '';
       const rows = groupDayNames.map((dayName, dayIndex) => {
         const row = document.createElement('div');
-        row.className = 'grid grid-cols-[26px_minmax(0,1fr)] gap-1.5 items-center border-b border-pink-100/80 py-0.5 px-0.5 min-h-[44px]';
+        row.className = 'grid grid-cols-[28px_minmax(0,1fr)] gap-1.5 items-center border-b border-pink-100/80 py-0.5 px-0.5 min-h-[66px]';
         const dayCell = document.createElement('div');
         const dayColor = dayIndex === 0 ? 'text-rose-500 bg-rose-50' : dayIndex === 6 ? 'text-sky-600 bg-sky-50' : 'text-slate-600 bg-slate-100';
-        dayCell.className = `w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-bold ${dayColor}`;
+        dayCell.className = `w-7 h-7 rounded-md flex items-center justify-center text-[11px] font-bold ${dayColor}`;
         dayCell.textContent = dayName;
         const itemsCell = document.createElement('div');
         itemsCell.className = 'flex flex-wrap items-center gap-1 min-w-0';
@@ -1346,7 +1453,9 @@
           dayItems.forEach(item => {
             const chip = document.createElement('button');
             chip.type = 'button';
-            chip.className = 'w-[94px] h-[42px] shrink-0 flex flex-row items-center gap-1 rounded-md border px-1 py-0.5 text-left shadow-xs active:scale-[0.98] overflow-hidden';
+            chip.className = 'shrink-0 flex flex-row items-center gap-1.5 rounded-lg border px-1.5 py-1 text-left shadow-xs active:scale-[0.98] overflow-hidden';
+            chip.style.width = `${Number(window.appearanceSettings.groupWidth || 72) + 72}px`;
+            chip.style.height = `${Math.max(42, Number(window.appearanceSettings.groupHeight || 72) + 10)}px`;
             if (item.source === 'schedule') {
               chip.style.backgroundColor = '#fff';
               chip.style.borderColor = '#fbcfe8';
@@ -1361,11 +1470,13 @@
               chip.onclick = () => openGroupEntryModal(item.id);
             }
             const imageBox = document.createElement('div');
-            imageBox.className = 'w-[36px] h-[36px] rounded overflow-hidden bg-gradient-to-br from-pink-50 to-purple-50 flex items-center justify-center text-pink-300 shrink-0';
-            if (item.image) { const img = document.createElement('img'); img.src = item.image; img.alt = ''; img.className = 'w-full h-full object-cover'; imageBox.appendChild(img); }
+            imageBox.className = 'rounded-md overflow-hidden bg-gradient-to-br from-pink-50 to-purple-50 flex items-center justify-center text-pink-300 shrink-0';
+            imageBox.style.width = `${Number(window.appearanceSettings.groupWidth || 72)}px`;
+            imageBox.style.height = `${Number(window.appearanceSettings.groupHeight || 72)}px`;
+            if (item.image) { const img = document.createElement('img'); img.src = item.image; img.alt = ''; img.className = 'w-full h-full object-fill'; imageBox.appendChild(img); }
             else { imageBox.innerHTML = item.source === 'schedule' ? '<i class="fa-solid fa-tv text-[11px]"></i>' : '<i class="fa-regular fa-image text-[11px]"></i>'; }
             const title = document.createElement('span');
-            title.className = 'min-w-0 flex-1 text-[8px] font-bold leading-tight line-clamp-2 break-words';
+            title.className = 'min-w-0 flex-1 text-[9px] font-bold leading-tight line-clamp-3 break-words';
             title.textContent = item.title;
             const time = document.createElement('span');
             time.className = 'hidden';
