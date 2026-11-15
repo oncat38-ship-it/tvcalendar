@@ -261,14 +261,18 @@
       </div>
       <div class="p-4 space-y-4">
         <section class="space-y-2">
-          <h4 class="font-bold text-xs text-slate-700">カレンダー側の画像サイズ</h4>
+          <h4 class="font-bold text-xs text-slate-700">カレンダー側の表示内容</h4>
+          <select id="cal-display-mode" class="w-full rounded-lg border border-pink-100 bg-white px-3 py-2 text-xs" onchange="previewAppearanceSettings()"><option value="both">画像＋名前</option><option value="image">画像だけ</option><option value="name">名前だけ</option></select>
+          <h4 class="font-bold text-xs text-slate-700 pt-1">カレンダー側の画像サイズ</h4>
           <div class="grid grid-cols-2 gap-3">
             <label class="text-[10px] text-slate-500">横幅 <span id="cal-width-value" class="font-bold text-pink-500"></span><input id="cal-width-setting" type="range" min="16" max="72" step="1" class="w-full mt-2" oninput="previewAppearanceSettings()"></label>
             <label class="text-[10px] text-slate-500">高さ <span id="cal-height-value" class="font-bold text-pink-500"></span><input id="cal-height-setting" type="range" min="16" max="72" step="1" class="w-full mt-2" oninput="previewAppearanceSettings()"></label>
           </div>
         </section>
         <section class="space-y-2 border-t border-pink-100 pt-3">
-          <h4 class="font-bold text-xs text-slate-700">グループ表側の画像サイズ</h4>
+          <h4 class="font-bold text-xs text-slate-700">グループ表側の表示内容</h4>
+          <select id="group-display-mode" class="w-full rounded-lg border border-pink-100 bg-white px-3 py-2 text-xs" onchange="previewAppearanceSettings()"><option value="both">画像＋名前</option><option value="image">画像だけ</option><option value="name">名前だけ</option></select>
+          <h4 class="font-bold text-xs text-slate-700 pt-1">グループ表側の画像サイズ</h4>
           <div class="grid grid-cols-2 gap-3">
             <label class="text-[10px] text-slate-500">横幅 <span id="group-width-value" class="font-bold text-pink-500"></span><input id="group-width-setting" type="range" min="32" max="112" step="1" class="w-full mt-2" oninput="previewAppearanceSettings()"></label>
             <label class="text-[10px] text-slate-500">高さ <span id="group-height-value" class="font-bold text-pink-500"></span><input id="group-height-setting" type="range" min="32" max="112" step="1" class="w-full mt-2" oninput="previewAppearanceSettings()"></label>
@@ -542,7 +546,7 @@
     window.selectedGroupId = null;
     window.selectedGroupDay = new Date().getDay();
     window.pendingGroupImage = null;
-    window.appearanceSettings = { calendarWidth: 24, calendarHeight: 24, groupWidth: 72, groupHeight: 72, backgroundColor: '#f1edf4' };
+    window.appearanceSettings = { calendarWidth: 24, calendarHeight: 24, groupWidth: 72, groupHeight: 72, calendarDisplayMode: 'both', groupDisplayMode: 'both', backgroundColor: '#f1edf4' };
     window.customTags = [
       { id: 'tag-1', name: '通常', color: '#f472b6' },
       { id: 'tag-2', name: '推し', color: '#a78bfa' },
@@ -1131,7 +1135,7 @@
       catch (err) { document.getElementById('bridge-message').textContent = `解除できませんでした：${err.message}`; }
     };
 
-    const DEFAULT_APPEARANCE_SETTINGS = { calendarWidth: 24, calendarHeight: 24, groupWidth: 72, groupHeight: 72, backgroundColor: '#f1edf4' };
+    const DEFAULT_APPEARANCE_SETTINGS = { calendarWidth: 24, calendarHeight: 24, groupWidth: 72, groupHeight: 72, calendarDisplayMode: 'both', groupDisplayMode: 'both', backgroundColor: '#f1edf4' };
     function applyAppearanceSettings() {
       const settings = { ...DEFAULT_APPEARANCE_SETTINGS, ...(window.appearanceSettings || {}) };
       window.appearanceSettings = settings;
@@ -1145,6 +1149,8 @@
       document.getElementById('cal-height-setting').value = s.calendarHeight;
       document.getElementById('group-width-setting').value = s.groupWidth;
       document.getElementById('group-height-setting').value = s.groupHeight;
+      document.getElementById('cal-display-mode').value = s.calendarDisplayMode || 'both';
+      document.getElementById('group-display-mode').value = s.groupDisplayMode || 'both';
       document.getElementById('app-bg-color-setting').value = s.backgroundColor;
       previewAppearanceSettings();
       document.getElementById('appearance-settings-backdrop').classList.remove('opacity-0','pointer-events-none');
@@ -1173,6 +1179,8 @@
       document.getElementById('cal-height-setting').value = DEFAULT_APPEARANCE_SETTINGS.calendarHeight;
       document.getElementById('group-width-setting').value = DEFAULT_APPEARANCE_SETTINGS.groupWidth;
       document.getElementById('group-height-setting').value = DEFAULT_APPEARANCE_SETTINGS.groupHeight;
+      document.getElementById('cal-display-mode').value = DEFAULT_APPEARANCE_SETTINGS.calendarDisplayMode;
+      document.getElementById('group-display-mode').value = DEFAULT_APPEARANCE_SETTINGS.groupDisplayMode;
       document.getElementById('app-bg-color-setting').value = DEFAULT_APPEARANCE_SETTINGS.backgroundColor;
       previewAppearanceSettings();
     };
@@ -1182,6 +1190,8 @@
         calendarHeight: Number(document.getElementById('cal-height-setting').value),
         groupWidth: Number(document.getElementById('group-width-setting').value),
         groupHeight: Number(document.getElementById('group-height-setting').value),
+        calendarDisplayMode: document.getElementById('cal-display-mode').value,
+        groupDisplayMode: document.getElementById('group-display-mode').value,
         backgroundColor: document.getElementById('app-bg-color-setting').value
       };
       applyAppearanceSettings();
@@ -1266,12 +1276,12 @@
           badge.onclick = (event) => { event.stopPropagation(); editSchedule(item.id); };
 
           const assignedGroup = (window.weeklyGroups || []).find(g => g.id === item.groupId);
-          const showDayImage = eventIndex === 0 && item.image;
+          const calendarMode = window.appearanceSettings.calendarDisplayMode || 'both';
+          const showDayImage = eventIndex === 0 && item.image && calendarMode !== 'name';
           badge.innerHTML = `
             ${showDayImage ? `<img src="${item.image}" alt="" style="width:${Number(window.appearanceSettings.calendarWidth || 24)}px;height:${Number(window.appearanceSettings.calendarHeight || 24)}px;object-fit:fill" class="rounded object-fill shrink-0 border border-white/70">` : ''}
             <div class="min-w-0 truncate mr-0.5 flex-1">
-              <span class="font-extrabold whitespace-nowrap">${escapeHtml(item.time || '')}</span><span class="font-semibold">${escapeHtml(item.title || '')}</span>
-              ${assignedGroup ? `<span class="inline-block ml-1 px-1 py-0.5 rounded bg-white/75 text-[8px] font-bold align-middle" style="color:${getReadableTextColor(item.color || '#f472b6')}">▣ ${escapeHtml(assignedGroup.name || 'グループ')}</span>` : ''}
+              <span class="font-extrabold whitespace-nowrap">${escapeHtml(item.time || '')}</span>${calendarMode !== 'image' ? `<span class="font-semibold">${escapeHtml(item.title || '')}</span>${assignedGroup ? `<span class="inline-block ml-1 px-1 py-0.5 rounded bg-white/75 text-[8px] font-bold align-middle" style="color:${getReadableTextColor(item.color || '#f472b6')}">▣ ${escapeHtml(assignedGroup.name || 'グループ')}</span>` : ''}` : ''}
             </div>
             <button onclick="toggleSkipDate('${item.id}', '${dateStr}', event)" title="休止" class="opacity-0 group-hover/badge:opacity-100 hover:bg-black/20 p-0.5 rounded text-[8px] shrink-0 transition">
               <i class="fa-solid fa-xmark"></i>
@@ -1453,35 +1463,34 @@
           dayItems.forEach(item => {
             const chip = document.createElement('button');
             chip.type = 'button';
-            chip.className = 'shrink-0 flex flex-row items-center gap-1.5 rounded-lg border px-1.5 py-1 text-left shadow-xs active:scale-[0.98] overflow-hidden';
-            chip.style.width = `${Number(window.appearanceSettings.groupWidth || 72) + 72}px`;
-            chip.style.height = `${Math.max(42, Number(window.appearanceSettings.groupHeight || 72) + 10)}px`;
+            const groupMode = window.appearanceSettings.groupDisplayMode || 'both';
+            const imageW = Number(window.appearanceSettings.groupWidth || 72);
+            const imageH = Number(window.appearanceSettings.groupHeight || 72);
+            chip.className = 'shrink-0 flex flex-row items-center gap-1 rounded-md border p-0.5 text-left active:scale-[0.98] overflow-hidden';
+            const showGroupImage = groupMode !== 'name';
+            const showGroupName = groupMode !== 'image';
+            chip.style.width = groupMode === 'image' ? `${imageW + 4}px` : (groupMode === 'name' ? '104px' : `${imageW + 58}px`);
+            chip.style.height = groupMode === 'name' ? '38px' : `${Math.max(38, imageH + 4)}px`;
             if (item.source === 'schedule') {
-              chip.style.backgroundColor = '#fff';
-              chip.style.borderColor = '#fbcfe8';
-              chip.style.color = '#55465b';
-              chip.title = `${item.kind} ${item.time} ${item.title}`;
-              chip.onclick = () => editSchedule(item.id);
+              chip.style.backgroundColor = '#fff'; chip.style.borderColor = '#fbcfe8'; chip.style.color = '#55465b';
+              chip.title = `${item.kind} ${item.time} ${item.title}`; chip.onclick = () => editSchedule(item.id);
             } else {
-              chip.style.backgroundColor = '#fff';
-              chip.style.borderColor = '#ddd6fe';
-              chip.style.color = '#6d5b91';
-              chip.title = `${item.kind} ${item.time} ${item.title}`;
-              chip.onclick = () => openGroupEntryModal(item.id);
+              chip.style.backgroundColor = '#fff'; chip.style.borderColor = '#ddd6fe'; chip.style.color = '#6d5b91';
+              chip.title = `${item.kind} ${item.time} ${item.title}`; chip.onclick = () => openGroupEntryModal(item.id);
             }
-            const imageBox = document.createElement('div');
-            imageBox.className = 'rounded-md overflow-hidden bg-gradient-to-br from-pink-50 to-purple-50 flex items-center justify-center text-pink-300 shrink-0';
-            imageBox.style.width = `${Number(window.appearanceSettings.groupWidth || 72)}px`;
-            imageBox.style.height = `${Number(window.appearanceSettings.groupHeight || 72)}px`;
-            if (item.image) { const img = document.createElement('img'); img.src = item.image; img.alt = ''; img.className = 'w-full h-full object-fill'; imageBox.appendChild(img); }
-            else { imageBox.innerHTML = item.source === 'schedule' ? '<i class="fa-solid fa-tv text-[11px]"></i>' : '<i class="fa-regular fa-image text-[11px]"></i>'; }
-            const title = document.createElement('span');
-            title.className = 'min-w-0 flex-1 text-[9px] font-bold leading-tight line-clamp-3 break-words';
-            title.textContent = item.title;
-            const time = document.createElement('span');
-            time.className = 'hidden';
-            time.textContent = item.time || '時間未設定';
-            chip.append(imageBox, title);
+            if (showGroupImage) {
+              const imageBox = document.createElement('div');
+              imageBox.className = 'rounded-sm overflow-hidden bg-gradient-to-br from-pink-50 to-purple-50 flex items-center justify-center text-pink-300 shrink-0';
+              imageBox.style.width = `${imageW}px`; imageBox.style.height = `${imageH}px`;
+              if (item.image) { const img = document.createElement('img'); img.src = item.image; img.alt = ''; img.className = 'w-full h-full object-fill'; imageBox.appendChild(img); }
+              else { imageBox.innerHTML = item.source === 'schedule' ? '<i class="fa-solid fa-tv text-[11px]"></i>' : '<i class="fa-regular fa-image text-[11px]"></i>'; }
+              chip.appendChild(imageBox);
+            }
+            if (showGroupName) {
+              const title = document.createElement('span');
+              title.className = 'min-w-0 flex-1 text-[9px] font-bold leading-tight line-clamp-3 break-words';
+              title.textContent = item.title; chip.appendChild(title);
+            }
             itemsCell.appendChild(chip);
           });
         }
@@ -1490,7 +1499,7 @@
       });
 
       const table = document.createElement('div');
-      table.className = 'bg-[#fbf8fc] border border-pink-100 rounded-xl px-2 shadow-xs';
+      table.className = 'bg-[#fbf8fc] border border-pink-100 rounded-xl px-1 shadow-xs';
       rows.forEach(row => table.appendChild(row));
       entryList.appendChild(table);
       const hint = document.createElement('p');
